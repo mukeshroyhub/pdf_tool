@@ -1,0 +1,22 @@
+Running diagnostics... 
+=== node version === 
+v24.18.0
+=== dev-migrate direct === 
+SQLite schema applied to C:\Users\TEI-1420\Downloads\pdf tool\pdfforge\apps\api\dev.db
+=== dev-migrate exit code: 0 === 
+=== npm run setup === 
+
+> pdfforge@0.1.0 setup
+> node scripts/setup-local.mjs
+
+✓ apps/api/.env already exists — keeping it
+SQLite schema applied to C:\Users\TEI-1420\Downloads\pdf tool\pdfforge\apps\api\dev.db
+
+All set. Start the app with:  npm run dev
+Then open http://localhost:3000
+
+Offline notes:
+  - Sign-up/sign-in work fully offline (email links print to this console)
+  - Office conversions need LibreOffice installed locally (optional)
+  - OCR needs Tesseract installed locally (optional)
+=== setup exit code: 0 === 

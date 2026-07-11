@@ -1,0 +1,26 @@
+{
+  "name": "pdfforge",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w @pdfforge/api\" \"npm run dev -w @pdfforge/web\"",
+    "dev:api": "npm run dev -w @pdfforge/api",
+    "dev:web": "npm run dev -w @pdfforge/web",
+    "build": "npm run build -w @pdfforge/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:migrate": "npm run db:setup -w @pdfforge/api",
+    "setup": "node scripts/setup-local.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "eslint": "^8.57.1",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  }
+}
