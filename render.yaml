@@ -38,6 +38,23 @@ services:
         value: https://pdftool-web.onrender.com
       - key: API_URL
         value: https://pdftool-api.onrender.com
+      # Optional integrations — values are set once in the Render dashboard
+      # (sync: false keeps them out of git). SMTP enables real verification
+      # and password-reset emails; Google enables OAuth sign-in.
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
 
   # ── Web: Next.js (proxies /api/* to the API above) ───────────────
   - type: web

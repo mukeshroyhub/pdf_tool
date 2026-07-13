@@ -2,11 +2,13 @@ import { Router, type Request, type Response } from "express";
 import multer from "multer";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
+import { rm } from "node:fs/promises";
 import { listFilesQuerySchema, updateFileSchema } from "@pdfforge/shared";
 import { requireAuth } from "../middleware/auth";
 import { validateBody } from "../middleware/validate";
 import { AppError, badRequest } from "../lib/errors";
 import { ensureUserDir, UPLOADS_DIR } from "../lib/storage";
+import { signatureMatches } from "../lib/sniff";
 import * as files from "../services/file.service";
 
 export const fileRouter = Router();
@@ -56,6 +58,20 @@ fileRouter.post("/", async (req, res, next) => {
     await runUpload(req, res);
     const uploaded = (req.files ?? []) as Express.Multer.File[];
     if (uploaded.length === 0) throw badRequest("No files provided", "NO_FILES");
+
+    // Content sniffing: the client-declared MIME type is only trusted after
+    // the file's magic bytes agree with it. On mismatch the whole batch is
+    // discarded before anything is registered.
+    for (const f of uploaded) {
+      if (!(await signatureMatches(f.path, f.mimetype))) {
+        await Promise.all(uploaded.map((u) => rm(u.path, { force: true })));
+        const name = Buffer.from(f.originalname, "latin1").toString("utf8");
+        throw badRequest(
+          `"${name}" does not match its declared file type`,
+          "CONTENT_MISMATCH",
+        );
+      }
+    }
 
     const dtos = await files.registerUploads(
       req.auth!.sub,

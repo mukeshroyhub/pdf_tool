@@ -1,7 +1,9 @@
 import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 import type { User } from "@prisma/client";
 import type { LoginInput, RegisterInput, UserDTO } from "@pdfforge/shared";
 import { prisma } from "../lib/prisma";
+import * as storage from "../lib/storage";
 import { signAccessToken } from "../lib/jwt";
 import { generateToken, hashToken } from "../lib/tokens";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../lib/mailer";
@@ -75,17 +77,44 @@ export async function register(input: RegisterInput, meta: ClientMeta): Promise<
   return issueSession(user, meta);
 }
 
-const GUEST_EMAIL = "guest@pdfforge.local";
+const GUEST_EMAIL_DOMAIN = "guest.pdfforge.local";
+const GUEST_STORAGE_LIMIT = BigInt(100 * 1024 * 1024); // 100 MiB per guest
+const GUEST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-/** Logs in to the shared local guest account, creating it on first use. */
+/**
+ * Creates an isolated throwaway account per guest session, so guests never
+ * see each other's files, activity or quota. Stale guest accounts (and their
+ * stored files) are purged opportunistically on each new guest login.
+ */
 export async function loginAsGuest(meta: ClientMeta): Promise<AuthResult> {
-  let user = await prisma.user.findUnique({ where: { email: GUEST_EMAIL } });
-  if (!user) {
-    user = await prisma.user.create({
-      data: { email: GUEST_EMAIL, name: "Guest", emailVerified: true },
-    });
-  }
+  void cleanupStaleGuests().catch((err) => console.error("Guest cleanup failed:", err));
+  const user = await prisma.user.create({
+    data: {
+      email: `guest-${randomBytes(9).toString("hex")}@${GUEST_EMAIL_DOMAIN}`,
+      name: "Guest",
+      emailVerified: true,
+      storageLimit: GUEST_STORAGE_LIMIT,
+    },
+  });
   return issueSession(user, meta);
+}
+
+/** Deletes guest accounts older than 24 h, including their files on disk. */
+export async function cleanupStaleGuests(): Promise<void> {
+  const stale = await prisma.user.findMany({
+    where: {
+      email: { endsWith: `@${GUEST_EMAIL_DOMAIN}` },
+      createdAt: { lt: new Date(Date.now() - GUEST_MAX_AGE_MS) },
+    },
+    include: { files: { select: { storageKey: true } } },
+  });
+  for (const guest of stale) {
+    for (const file of guest.files) {
+      await storage.remove(file.storageKey).catch(() => undefined);
+    }
+    // Cascade rules clean up tokens, file rows and activity entries.
+    await prisma.user.delete({ where: { id: guest.id } });
+  }
 }
 
 export async function login(input: LoginInput, meta: ClientMeta): Promise<AuthResult> {

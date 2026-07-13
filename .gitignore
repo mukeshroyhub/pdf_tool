@@ -10,4 +10,3 @@ apps/api/prisma/*.db-journal
 apps/api/uploads/
 install.log
 .DS_Store
-package-lock.json

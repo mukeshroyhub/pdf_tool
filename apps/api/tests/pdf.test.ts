@@ -78,19 +78,38 @@ describe("POST /api/pdf/merge", () => {
   });
 
   it("rejects non-PDF inputs", async () => {
+    // Full 8-byte PNG signature so the upload passes content sniffing;
+    // merge must still reject it because it is not a PDF.
+    const png = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.alloc(16),
+    ]);
     const img = await request(app)
       .post("/api/files")
       .set(auth())
-      .attach("files", Buffer.from([0x89, 0x50, 0x4e, 0x47]), {
+      .attach("files", png, {
         filename: "pic.png",
         contentType: "image/png",
       });
+    assert.equal(img.status, 201);
     const res = await request(app)
       .post("/api/pdf/merge")
       .set(auth())
       .send({ fileIds: [docA, img.body.files[0].id] });
     assert.equal(res.status, 400);
     assert.equal(res.body.error.code, "NOT_A_PDF");
+  });
+
+  it("rejects uploads whose bytes don't match the declared type", async () => {
+    const res = await request(app)
+      .post("/api/files")
+      .set(auth())
+      .attach("files", Buffer.from("this is not a pdf at all"), {
+        filename: "fake.pdf",
+        contentType: "application/pdf",
+      });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.error.code, "CONTENT_MISMATCH");
   });
 });
 
