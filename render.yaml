@@ -8,11 +8,9 @@
 # they differ from the values below, update API_URL / WEB_URL and redeploy the
 # web service with "Clear build cache & deploy".
 
-databases:
-  - name: pdftool-db
-    plan: free
-    databaseName: pdfforge
-    user: pdfforge
+# Database: hosted on Neon (free tier, no expiry) since July 2026.
+# The connection string is set directly on the API service in the dashboard
+# (sync: false below). The old Render free Postgres expired/was retired.
 
 services:
   # ── API: Express + Prisma (PostgreSQL) ───────────────────────────
@@ -26,10 +24,9 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # Neon connection string — value lives only in the Render dashboard.
       - key: DATABASE_URL
-        fromDatabase:
-          name: pdftool-db
-          property: connectionString
+        sync: false
       - key: JWT_ACCESS_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
