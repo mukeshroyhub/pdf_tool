@@ -36,8 +36,10 @@ services:
         generateValue: true
       - key: WEB_URL
         value: https://pdftool-web.onrender.com
+      # NOTE: "pdftool-api" was taken on onrender.com, so Render assigned the
+      # suffixed subdomain below. It must match the API service's real URL.
       - key: API_URL
-        value: https://pdftool-api.onrender.com
+        value: https://pdftool-api-xyd5.onrender.com
       # Optional integrations — values are set once in the Render dashboard
       # (sync: false keeps them out of git). SMTP enables real verification
       # and password-reset emails; Google enables OAuth sign-in.
@@ -67,6 +69,6 @@ services:
       - key: NODE_ENV
         value: production
       # Baked into the Next.js build (build arg) so /api/* proxies to the API.
-      # Must match the API service's real URL.
+      # Must match the API service's real URL (suffixed — see note above).
       - key: API_URL
-        value: https://pdftool-api.onrender.com
+        value: https://pdftool-api-xyd5.onrender.com
