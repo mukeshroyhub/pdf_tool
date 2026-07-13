@@ -10,7 +10,10 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Install workspace dependencies with the full monorepo manifest set.
-COPY package.json package-lock.json* ./
+# NOTE: the committed package-lock.json is generated on Windows and can omit
+# Linux-only native binaries (@napi-rs/canvas, sharp — npm/cli#4828), so the
+# image resolves dependencies fresh for linux-x64.
+COPY package.json ./
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
 RUN npm install --no-audit --no-fund

@@ -1,7 +1,9 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
+# Windows-generated lockfiles can omit Linux native binaries (npm/cli#4828),
+# so the image resolves dependencies fresh for linux (see api Dockerfile).
+COPY package.json ./
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
 RUN npm install --no-audit --no-fund
