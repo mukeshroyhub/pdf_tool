@@ -54,6 +54,23 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      # Object storage on Cloudflare R2 so uploads survive restarts (the free
+      # tier disk is ephemeral). Set STORAGE_DRIVER=s3 and the S3_* values in
+      # the dashboard. S3_ENDPOINT = https://<account-id>.r2.cloudflarestorage.com
+      - key: STORAGE_DRIVER
+        value: s3
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_REGION
+        value: auto
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_FORCE_PATH_STYLE
+        value: "true"
 
   # ── Web: Next.js (proxies /api/* to the API above) ───────────────
   - type: web

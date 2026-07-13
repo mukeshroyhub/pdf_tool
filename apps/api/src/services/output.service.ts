@@ -1,5 +1,3 @@
-import { writeFile } from "node:fs/promises";
-import path from "node:path";
 import { randomBytes } from "node:crypto";
 import type { File as FileModel } from "@prisma/client";
 import { prisma } from "../lib/prisma";
@@ -27,10 +25,9 @@ export async function saveGeneratedAny(
   if (user.storageUsed + BigInt(bytes.length) > user.storageLimit) {
     throw new AppError(413, "QUOTA_EXCEEDED", "Not enough storage space for the result");
   }
-  await storage.ensureUserDir(userId);
   const ext = EXT_BY_MIME[mimeType] ?? "bin";
-  const storageKey = path.join(userId, `${randomBytes(16).toString("hex")}.${ext}`);
-  await writeFile(storage.resolveStorageKey(storageKey), bytes);
+  const storageKey = `${userId}/${randomBytes(16).toString("hex")}.${ext}`;
+  await storage.writeBytes(storageKey, bytes);
 
   const file = await prisma.file.create({
     data: { userId, name, mimeType, sizeBytes: BigInt(bytes.length), storageKey, pageCount },

@@ -1,6 +1,5 @@
 import { PDFDocument } from "pdf-lib";
 import sharp from "sharp";
-import { readFile } from "node:fs/promises";
 import type { CompressInput, FileDTO } from "@pdfforge/shared";
 import * as storage from "../lib/storage";
 import * as activity from "./activity.service";
@@ -22,7 +21,7 @@ export async function compress(
   input: CompressInput,
 ): Promise<{ file: FileDTO; before: number; after: number }> {
   const file = await getOwnedPdf(userId, fileId);
-  const bytes = await readFile(storage.resolveStorageKey(file.storageKey));
+  const bytes = await storage.readBytes(file.storageKey);
 
   let outBytes: Buffer;
   let pageCount: number;

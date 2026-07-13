@@ -1,5 +1,4 @@
 import { PDFDocument, rgb } from "pdf-lib";
-import { readFile } from "node:fs/promises";
 import type { FileDTO, RedactInput, RemoveTextInput } from "@pdfforge/shared";
 import * as storage from "../lib/storage";
 import * as activity from "./activity.service";
@@ -21,7 +20,7 @@ export async function redact(
   input: RedactInput,
 ): Promise<FileDTO> {
   const file = await getOwnedPdf(userId, fileId);
-  const bytes = await readFile(storage.resolveStorageKey(file.storageKey));
+  const bytes = await storage.readBytes(file.storageKey);
   const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
   const total = doc.getPageCount();
 
@@ -147,7 +146,7 @@ export async function removeText(
   input: RemoveTextInput,
 ): Promise<{ file: FileDTO; removed: number }> {
   const file = await getOwnedPdf(userId, fileId);
-  const bytes = await readFile(storage.resolveStorageKey(file.storageKey));
+  const bytes = await storage.readBytes(file.storageKey);
   const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
   const total = doc.getPageCount();
   const targetPages =

@@ -7,7 +7,6 @@ import {
   rgb,
   StandardFonts,
 } from "pdf-lib";
-import { readFile } from "node:fs/promises";
 import type {
   AnnotateInput,
   EditElement,
@@ -52,10 +51,10 @@ async function loadImageAsset(
     where: { id: imageFileId, userId, deletedAt: null },
   });
   if (!file) throw notFound(`Image file ${imageFileId} not found`);
-  if (!storage.exists(file.storageKey)) {
+  if (!(await storage.exists(file.storageKey))) {
     throw badRequest(`"${file.name}" is missing from storage`, "FILE_MISSING");
   }
-  const bytes = await readFile(storage.resolveStorageKey(file.storageKey));
+  const bytes = await storage.readBytes(file.storageKey);
   let image: PDFImage;
   if (file.mimeType === "image/png") image = await doc.embedPng(bytes);
   else if (file.mimeType === "image/jpeg") image = await doc.embedJpg(bytes);

@@ -16,6 +16,7 @@
     "db:reset": "node scripts/dev-migrate.mjs --reset"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.705.0",
     "@libsql/client": "^0.14.0",
     "@napi-rs/canvas": "^0.1.100",
     "@pdfforge/shared": "*",

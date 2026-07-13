@@ -1,5 +1,4 @@
 import { PDFDocument } from "pdf-lib";
-import { readFile } from "node:fs/promises";
 import type { OcrInput, OcrResponse } from "@pdfforge/shared";
 import * as storage from "../lib/storage";
 import * as activity from "./activity.service";
@@ -27,7 +26,7 @@ export async function ocr(userId: string, fileId: string, input: OcrInput): Prom
   }
 
   const file = await getOwnedPdf(userId, fileId);
-  const bytes = await readFile(storage.resolveStorageKey(file.storageKey));
+  const bytes = await storage.readBytes(file.storageKey);
   const pages = await rasterizePdf(bytes, { dpi: input.dpi, format: "png" });
 
   const out = await PDFDocument.create();

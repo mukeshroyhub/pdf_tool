@@ -18,6 +18,15 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional().default(""),
   SMTP_PASS: z.string().optional().default(""),
   MAIL_FROM: z.string().default("PDF Tool <no-reply@pdfforge.local>"),
+
+  // Object storage: "local" (disk) in dev, "s3" (S3-compatible, e.g. R2) in prod.
+  STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
+  S3_BUCKET: z.string().optional().default(""),
+  S3_REGION: z.string().optional().default("auto"),
+  S3_ENDPOINT: z.string().optional().default(""),
+  S3_ACCESS_KEY_ID: z.string().optional().default(""),
+  S3_SECRET_ACCESS_KEY: z.string().optional().default(""),
+  S3_FORCE_PATH_STYLE: z.coerce.boolean().default(true),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -26,6 +35,17 @@ if (!parsed.success) {
     .map((i) => `  ${i.path.join(".")}: ${i.message}`)
     .join("\n");
   throw new Error(`Invalid environment configuration:\n${issues}`);
+}
+
+if (parsed.data.STORAGE_DRIVER === "s3") {
+  const missing = (
+    ["S3_BUCKET", "S3_ENDPOINT", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"] as const
+  ).filter((k) => parsed.data[k].length === 0);
+  if (missing.length > 0) {
+    throw new Error(
+      `STORAGE_DRIVER=s3 requires: ${missing.join(", ")}. Set them or use STORAGE_DRIVER=local.`,
+    );
+  }
 }
 
 export const config = {

@@ -1,7 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import sharp from "sharp";
 import ExcelJS from "exceljs";
-import { readFile } from "node:fs/promises";
 import type { ConvertInput, FileDTO, ImagesToPdfInput } from "@pdfforge/shared";
 import type { File as FileModel } from "@prisma/client";
 import { prisma } from "../lib/prisma";
@@ -30,14 +29,14 @@ const OFFICE_EXT_BY_MIME: Record<string, string> = Object.fromEntries(
 async function getOwned(userId: string, fileId: string): Promise<FileModel> {
   const file = await prisma.file.findFirst({ where: { id: fileId, userId, deletedAt: null } });
   if (!file) throw notFound("File not found");
-  if (!storage.exists(file.storageKey)) {
+  if (!(await storage.exists(file.storageKey))) {
     throw badRequest(`"${file.name}" is missing from storage`, "FILE_MISSING");
   }
   return file;
 }
 
 function readBytes(file: FileModel): Promise<Buffer> {
-  return readFile(storage.resolveStorageKey(file.storageKey));
+  return storage.readBytes(file.storageKey);
 }
 
 /** PDF → one image file per page. */

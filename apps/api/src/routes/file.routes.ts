@@ -7,7 +7,8 @@ import { listFilesQuerySchema, updateFileSchema } from "@pdfforge/shared";
 import { requireAuth } from "../middleware/auth";
 import { validateBody } from "../middleware/validate";
 import { AppError, badRequest } from "../lib/errors";
-import { ensureUserDir, UPLOADS_DIR } from "../lib/storage";
+import * as storage from "../lib/storage";
+import { UPLOAD_TMP_DIR } from "../lib/storage";
 import { signatureMatches } from "../lib/sniff";
 import * as files from "../services/file.service";
 
@@ -19,12 +20,10 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB per file
 const MAX_FILES_PER_UPLOAD = 10;
 
 const upload = multer({
+  // Files are staged in a temp dir, then handed to the active storage driver
+  // (local disk or S3/R2). The temp copy is always removed afterwards.
   storage: multer.diskStorage({
-    destination: (req, _file, cb) => {
-      ensureUserDir(req.auth!.sub)
-        .then((dir) => cb(null, dir))
-        .catch((err) => cb(err as Error, ""));
-    },
+    destination: (_req, _file, cb) => cb(null, UPLOAD_TMP_DIR),
     filename: (_req, file, cb) => {
       const ext = path.extname(file.originalname).slice(0, 10).replace(/[^.\w]/g, "");
       cb(null, `${randomBytes(16).toString("hex")}${ext}`);
@@ -54,38 +53,43 @@ function runUpload(req: Request, res: Response): Promise<void> {
 }
 
 fileRouter.post("/", async (req, res, next) => {
+  const uploaded: Express.Multer.File[] = [];
   try {
     await runUpload(req, res);
-    const uploaded = (req.files ?? []) as Express.Multer.File[];
+    uploaded.push(...((req.files ?? []) as Express.Multer.File[]));
     if (uploaded.length === 0) throw badRequest("No files provided", "NO_FILES");
 
     // Content sniffing: the client-declared MIME type is only trusted after
-    // the file's magic bytes agree with it. On mismatch the whole batch is
-    // discarded before anything is registered.
+    // the staged file's magic bytes agree with it. On mismatch the whole
+    // batch is rejected before anything is stored.
     for (const f of uploaded) {
       if (!(await signatureMatches(f.path, f.mimetype))) {
-        await Promise.all(uploaded.map((u) => rm(u.path, { force: true })));
         const name = Buffer.from(f.originalname, "latin1").toString("utf8");
-        throw badRequest(
-          `"${name}" does not match its declared file type`,
-          "CONTENT_MISMATCH",
-        );
+        throw badRequest(`"${name}" does not match its declared file type`, "CONTENT_MISMATCH");
       }
     }
 
-    const dtos = await files.registerUploads(
-      req.auth!.sub,
-      uploaded.map((f) => ({
+    // Move each staged file into the storage backend under <userId>/<random>.
+    const incoming = [];
+    for (const f of uploaded) {
+      const storageKey = `${req.auth!.sub}/${path.basename(f.path)}`;
+      await storage.saveUploadedFile(storageKey, f.path);
+      incoming.push({
         originalName: Buffer.from(f.originalname, "latin1").toString("utf8"),
         mimeType: f.mimetype,
         sizeBytes: f.size,
-        // Store keys relative to the uploads root: <userId>/<random>.<ext>
-        storageKey: path.relative(UPLOADS_DIR, f.path),
-      })),
-    );
+        storageKey,
+      });
+    }
+
+    const dtos = await files.registerUploads(req.auth!.sub, incoming);
     res.status(201).json({ files: dtos });
   } catch (err) {
     next(err);
+  } finally {
+    // Always clean up staged temp files (saveUploadedFile may have consumed
+    // them already; rm with force ignores missing files).
+    await Promise.all(uploaded.map((f) => rm(f.path, { force: true }).catch(() => undefined)));
   }
 });
 
@@ -128,8 +132,15 @@ fileRouter.delete("/:id", async (req, res, next) => {
 
 fileRouter.get("/:id/download", async (req, res, next) => {
   try {
-    const { file, absolutePath } = await files.forDownload(req.auth!.sub, req.params.id!);
-    res.download(absolutePath, file.name);
+    const file = await files.forDownload(req.auth!.sub, req.params.id!);
+    res.setHeader("Content-Type", file.mimeType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`,
+    );
+    const stream = await storage.downloadStream(file.storageKey);
+    stream.on("error", next);
+    stream.pipe(res);
   } catch (err) {
     next(err);
   }

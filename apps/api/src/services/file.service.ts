@@ -1,5 +1,4 @@
 import { PDFDocument } from "pdf-lib";
-import { readFile } from "node:fs/promises";
 import type { File as FileModel } from "@prisma/client";
 import type { FileDTO, ListFilesQuery, UpdateFileInput } from "@pdfforge/shared";
 import { prisma } from "../lib/prisma";
@@ -35,7 +34,7 @@ export function toFileDTO(file: FileModel): FileDTO {
 
 async function countPdfPages(storageKey: string): Promise<number | null> {
   try {
-    const bytes = await readFile(storage.resolveStorageKey(storageKey));
+    const bytes = await storage.readBytes(storageKey);
     const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
     return doc.getPageCount();
   } catch {
@@ -158,14 +157,11 @@ export async function destroy(userId: string, fileId: string): Promise<void> {
   });
 }
 
-export async function forDownload(
-  userId: string,
-  fileId: string,
-): Promise<{ file: FileModel; absolutePath: string }> {
+export async function forDownload(userId: string, fileId: string): Promise<FileModel> {
   const file = await getOwned(userId, fileId);
-  if (!storage.exists(file.storageKey)) {
+  if (!(await storage.exists(file.storageKey))) {
     throw badRequest("File contents are missing from storage", "FILE_MISSING");
   }
   await activity.log(userId, "DOWNLOAD", { fileId: file.id, detail: file.name });
-  return { file, absolutePath: storage.resolveStorageKey(file.storageKey) };
+  return file;
 }

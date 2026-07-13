@@ -1,6 +1,4 @@
 import { degrees, PDFDocument } from "pdf-lib";
-import { readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { randomBytes } from "node:crypto";
 import type {
   FileDTO,
@@ -22,14 +20,14 @@ export async function getOwnedPdf(userId: string, fileId: string): Promise<FileM
   if (file.mimeType !== "application/pdf") {
     throw badRequest(`"${file.name}" is not a PDF`, "NOT_A_PDF");
   }
-  if (!storage.exists(file.storageKey)) {
+  if (!(await storage.exists(file.storageKey))) {
     throw badRequest(`"${file.name}" is missing from storage`, "FILE_MISSING");
   }
   return file;
 }
 
 export async function loadPdf(file: FileModel): Promise<PDFDocument> {
-  const bytes = await readFile(storage.resolveStorageKey(file.storageKey));
+  const bytes = await storage.readBytes(file.storageKey);
   try {
     return await PDFDocument.load(bytes, { ignoreEncryption: true });
   } catch {
@@ -48,9 +46,8 @@ export async function saveGenerated(
   if (user.storageUsed + BigInt(bytes.length) > user.storageLimit) {
     throw new AppError(413, "QUOTA_EXCEEDED", "Not enough storage space for the result");
   }
-  await storage.ensureUserDir(userId);
-  const storageKey = path.join(userId, `${randomBytes(16).toString("hex")}.pdf`);
-  await writeFile(storage.resolveStorageKey(storageKey), bytes);
+  const storageKey = `${userId}/${randomBytes(16).toString("hex")}.pdf`;
+  await storage.writeBytes(storageKey, bytes);
 
   const file = await prisma.file.create({
     data: {
@@ -81,7 +78,7 @@ export async function overwrite(
   if (user.storageUsed + delta > user.storageLimit) {
     throw new AppError(413, "QUOTA_EXCEEDED", "Not enough storage space for the result");
   }
-  await writeFile(storage.resolveStorageKey(file.storageKey), bytes);
+  await storage.writeBytes(file.storageKey, bytes);
   const updated = await prisma.file.update({
     where: { id: file.id },
     data: { sizeBytes: BigInt(bytes.length), pageCount },
