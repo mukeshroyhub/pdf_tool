@@ -9,6 +9,7 @@ import { UploadDropzone } from "@/components/upload-dropzone";
 import { FileList } from "@/components/file-list";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { VerifyEmailBanner } from "@/components/verify-email-banner";
+import { RetentionBanner } from "@/components/retention-banner";
 import { ToolGrid } from "@/components/tool-grid";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -42,6 +43,8 @@ function DashboardContent() {
       </div>
 
       {user && !user.emailVerified ? <VerifyEmailBanner /> : null}
+
+      <RetentionBanner />
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground">Quick tools</h2>
