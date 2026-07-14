@@ -17,7 +17,44 @@ const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1h
 export const TOKEN_TYPE = {
   emailVerify: "EMAIL_VERIFY",
   passwordReset: "PASSWORD_RESET",
+  oauthHandoff: "OAUTH_HANDOFF",
 } as const;
+
+const OAUTH_HANDOFF_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
+/**
+ * After a successful Google login the callback can't reliably set the session
+ * cookie (it runs behind the web proxy). Instead it mints a short-lived
+ * single-use code, passed in the redirect URL; the web app exchanges it for a
+ * real session via a normal request (the same path email login uses).
+ */
+export async function createOAuthHandoff(userId: string): Promise<string> {
+  const { token, tokenHash } = generateToken();
+  await prisma.actionToken.create({
+    data: {
+      tokenHash,
+      type: TOKEN_TYPE.oauthHandoff,
+      userId,
+      expiresAt: new Date(Date.now() + OAUTH_HANDOFF_TTL_MS),
+    },
+  });
+  return token;
+}
+
+export async function exchangeOAuthHandoff(code: string, meta: ClientMeta): Promise<AuthResult> {
+  const stored = await prisma.actionToken.findUnique({ where: { tokenHash: hashToken(code) } });
+  if (
+    !stored ||
+    stored.type !== TOKEN_TYPE.oauthHandoff ||
+    stored.usedAt ||
+    stored.expiresAt < new Date()
+  ) {
+    throw unauthorized("Invalid or expired sign-in code");
+  }
+  await prisma.actionToken.update({ where: { id: stored.id }, data: { usedAt: new Date() } });
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: stored.userId } });
+  return issueSession(user, meta);
+}
 
 export function toUserDTO(user: User): UserDTO {
   return {

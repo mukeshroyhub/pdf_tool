@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import {
   forgotPasswordSchema,
   loginSchema,
+  oauthExchangeSchema,
   registerSchema,
   resetPasswordSchema,
   verifyEmailSchema,
@@ -115,6 +116,17 @@ authRouter.post("/verify-email", validateBody(verifyEmailSchema), async (req, re
   }
 });
 
+// Exchanges the one-time code from the Google callback for a real session.
+authRouter.post("/oauth-exchange", validateBody(oauthExchangeSchema), async (req, res, next) => {
+  try {
+    const result = await auth.exchangeOAuthHandoff(req.body.code, clientMeta(req));
+    setRefreshCookie(res, result.refreshToken, result.refreshExpiresAt);
+    res.json({ user: toUserDTO(result.user), accessToken: result.accessToken });
+  } catch (err) {
+    next(err);
+  }
+});
+
 authRouter.post("/resend-verification", requireAuth, async (req, res, next) => {
   try {
     await auth.resendVerification(req.auth!.sub);
@@ -190,13 +202,12 @@ authRouter.get("/google/callback", async (req, res, next) => {
       },
       clientMeta(req),
     );
-    setRefreshCookie(res, result.refreshToken, result.refreshExpiresAt);
-    // Hand off with a 200 HTML page (not a 302). The web app proxies /api/* to
-    // this API; a server redirect here is followed by the proxy and strips the
-    // Set-Cookie before it reaches the browser. A client-side redirect keeps the
-    // cookie on the response the browser actually receives.
-    const target = `${config.WEB_URL}/auth/callback`;
-    // Meta-refresh (not a script) so it works under the strict API CSP.
+    // The session cookie can't be reliably set on this proxied callback, so we
+    // pass a short-lived single-use code in the URL. The web app exchanges it
+    // for a session via POST /oauth-exchange (a normal request that sets the
+    // cookie correctly). Meta-refresh (not a script) works under the API CSP.
+    const handoff = await auth.createOAuthHandoff(result.user.id);
+    const target = `${config.WEB_URL}/auth/callback?code=${handoff}`;
     res
       .status(200)
       .type("html")

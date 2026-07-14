@@ -38,6 +38,10 @@ export const verifyEmailSchema = z.object({
   token: z.string().min(1, "Token is required"),
 });
 
+export const oauthExchangeSchema = z.object({
+  code: z.string().min(1, "Code is required"),
+});
+
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100).optional(),
   avatarUrl: z.string().url("Must be a valid URL").nullable().optional(),
@@ -54,5 +58,6 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type OAuthExchangeInput = z.infer<typeof oauthExchangeSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
