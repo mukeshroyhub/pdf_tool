@@ -9,6 +9,7 @@ import { UploadDropzone } from "@/components/upload-dropzone";
 import { FileList } from "@/components/file-list";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { VerifyEmailBanner } from "@/components/verify-email-banner";
+import { ToolGrid } from "@/components/tool-grid";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { MergeDialog } from "@/components/merge-dialog";
@@ -31,6 +32,7 @@ function DashboardContent() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const files = useFiles({ favorite: tab === "favorites" || undefined, search: search || undefined });
+  const firstPdf = (files.data?.files ?? []).find((f) => f.mimeType === "application/pdf");
 
   return (
     <div className="space-y-6">
@@ -40,6 +42,11 @@ function DashboardContent() {
       </div>
 
       {user && !user.emailVerified ? <VerifyEmailBanner /> : null}
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-muted-foreground">Quick tools</h2>
+        <ToolGrid firstPdfId={firstPdf?.id ?? null} />
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

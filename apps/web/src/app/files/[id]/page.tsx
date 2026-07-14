@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { ArrowLeft, ClipboardList, Download, LayoutGrid, Loader2, PencilRuler, ScanEye, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +24,8 @@ import { cn } from "@/lib/utils";
 
 type Mode = "view" | "edit" | "organize" | "form" | "redact";
 
+const MODES: Mode[] = ["view", "edit", "organize", "form", "redact"];
+
 export default function FilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   return (
@@ -34,9 +37,12 @@ export default function FilePage({ params }: { params: Promise<{ id: string }> }
 
 function FileContent({ id }: { id: string }) {
   const { data, isLoading, error } = useFile(id);
+  const requestedMode = useSearchParams().get("mode");
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [docError, setDocError] = useState<string | null>(null);
-  const [mode, setMode] = useState<Mode>("view");
+  const [mode, setMode] = useState<Mode>(
+    MODES.includes(requestedMode as Mode) ? (requestedMode as Mode) : "view",
+  );
 
   const file = data?.file;
   const isPdf = file?.mimeType === "application/pdf";
