@@ -1,6 +1,7 @@
 import { createApp } from "./app";
 import { config } from "./config";
 import { prisma } from "./lib/prisma";
+import { purgeExpiredData } from "./services/cleanup.service";
 
 const app = createApp();
 
@@ -26,6 +27,15 @@ void purgeExpiredTokens().catch((err) => console.error("Token purge failed:", er
 setInterval(
   () => void purgeExpiredTokens().catch((err) => console.error("Token purge failed:", err)),
   PURGE_INTERVAL_MS,
+).unref();
+
+// ── Data retention (runs at boot, then every 15 min) ───────────────────
+// Uploaded files and activity entries are deleted 1 hour after creation.
+const DATA_PURGE_INTERVAL_MS = 15 * 60 * 1000;
+void purgeExpiredData().catch((err) => console.error("Data purge failed:", err));
+setInterval(
+  () => void purgeExpiredData().catch((err) => console.error("Data purge failed:", err)),
+  DATA_PURGE_INTERVAL_MS,
 ).unref();
 
 const server = app.listen(config.PORT, () => {
