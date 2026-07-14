@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { CloudUpload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useUploadFiles } from "@/lib/queries";
@@ -15,6 +16,7 @@ export function UploadDropzone() {
   const [dragging, setDragging] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
   const { refreshUser } = useAuth();
   const upload = useUploadFiles(setProgress);
 
@@ -31,6 +33,11 @@ export function UploadDropzone() {
             : `Uploaded ${result.files.length} files`,
         );
         await refreshUser(); // storage usage changed
+        // Open the viewer automatically when a single PDF was uploaded.
+        const uploaded = result.files;
+        if (uploaded.length === 1 && uploaded[0]?.mimeType === "application/pdf") {
+          router.push(`/files/${uploaded[0].id}`);
+        }
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : "Upload failed. Try again.");
       } finally {
