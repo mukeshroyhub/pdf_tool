@@ -2,7 +2,6 @@ import {
   batchSchema,
   compressSchema,
   convertSchema,
-  ocrSchema,
   watermarkSchema,
   type BatchInput,
   type BatchResultItem,
@@ -11,7 +10,6 @@ import { AppError, badRequest } from "../lib/errors";
 import * as convertService from "./convert.service";
 import * as compressService from "./compress.service";
 import * as editService from "./edit.service";
-import * as ocrService from "./ocr.service";
 
 export { batchSchema };
 
@@ -36,15 +34,6 @@ export async function runBatch(userId: string, input: BatchInput): Promise<Batch
       runner = async (fileId) => {
         const r = await compressService.compress(userId, fileId, params.data);
         return [{ id: r.file.id, name: r.file.name }];
-      };
-      break;
-    }
-    case "ocr": {
-      const params = ocrSchema.safeParse({ ...input.params, mode: "new" });
-      if (!params.success) throw badRequest("Invalid OCR parameters", "INVALID_PARAMS");
-      runner = async (fileId) => {
-        const r = await ocrService.ocr(userId, fileId, params.data);
-        return [r.file];
       };
       break;
     }

@@ -1,28 +1,8 @@
 import { Router } from "express";
-import { createFormSchema, fillFormSchema, ocrSchema } from "@pdfforge/shared";
+import { createFormSchema, fillFormSchema } from "@pdfforge/shared";
 import { requireAuth } from "../middleware/auth";
 import { validateBody } from "../middleware/validate";
-import * as ocrService from "../services/ocr.service";
 import * as formService from "../services/form.service";
-
-export const ocrRouter = Router();
-ocrRouter.use(requireAuth);
-
-ocrRouter.get("/languages", async (_req, res, next) => {
-  try {
-    res.json({ languages: await ocrService.listLanguages() });
-  } catch (err) {
-    next(err);
-  }
-});
-
-ocrRouter.post("/:id", validateBody(ocrSchema), async (req, res, next) => {
-  try {
-    res.status(201).json(await ocrService.ocr(req.auth!.sub, req.params.id!, req.body));
-  } catch (err) {
-    next(err);
-  }
-});
 
 export const formRouter = Router();
 formRouter.use(requireAuth);

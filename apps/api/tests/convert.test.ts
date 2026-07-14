@@ -6,7 +6,6 @@ import request from "supertest";
 import sharp from "sharp";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { createApp } from "../src/app";
-import { sofficeAvailable } from "../src/lib/soffice";
 
 const app = createApp();
 
@@ -106,17 +105,6 @@ describe("POST /api/convert/:id", () => {
     assert.equal(parsed.getPageCount(), 1);
   });
 
-  it("pdf → xlsx extracts text rows", async () => {
-    const res = await request(app)
-      .post(`/api/convert/${pdfId}`)
-      .set(auth())
-      .send({ target: "xlsx" });
-    assert.equal(res.status, 201);
-    const bytes = await downloadBytes(res.body.files[0].id);
-    assert.equal(bytes.subarray(0, 2).toString(), "PK"); // xlsx = zip container
-    assert.ok(bytes.length > 1000);
-  });
-
   it("rejects unsupported conversions", async () => {
     const res = await request(app)
       .post(`/api/convert/${imgId}`)
@@ -124,30 +112,6 @@ describe("POST /api/convert/:id", () => {
       .send({ target: "png" });
     assert.equal(res.status, 400);
     assert.equal(res.body.error.code, "UNSUPPORTED_CONVERSION");
-  });
-});
-
-describe("office conversions (LibreOffice)", () => {
-  it("pdf → docx and docx → pdf round-trip", { timeout: 120_000 }, async (t) => {
-    if (!(await sofficeAvailable())) {
-      t.skip("LibreOffice not installed");
-      return;
-    }
-    const toDocx = await request(app)
-      .post(`/api/convert/${pdfId}`)
-      .set(auth())
-      .send({ target: "docx" });
-    assert.equal(toDocx.status, 201);
-    const docxBytes = await downloadBytes(toDocx.body.files[0].id);
-    assert.equal(docxBytes.subarray(0, 2).toString(), "PK");
-
-    const backToPdf = await request(app)
-      .post(`/api/convert/${toDocx.body.files[0].id}`)
-      .set(auth())
-      .send({ target: "pdf" });
-    assert.equal(backToPdf.status, 201);
-    const parsed = await PDFDocument.load(await downloadBytes(backToPdf.body.files[0].id));
-    assert.ok(parsed.getPageCount() >= 1);
   });
 });
 

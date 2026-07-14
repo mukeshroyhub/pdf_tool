@@ -1,6 +1,5 @@
 import { PDFDocument } from "pdf-lib";
 import sharp from "sharp";
-import ExcelJS from "exceljs";
 import type { ConvertInput, FileDTO, ImagesToPdfInput } from "@pdfforge/shared";
 import type { File as FileModel } from "@prisma/client";
 import { prisma } from "../lib/prisma";
@@ -9,22 +8,8 @@ import * as activity from "./activity.service";
 import { toFileDTO } from "./file.service";
 import { badRequest, notFound } from "../lib/errors";
 import { rasterizePdf } from "../lib/rasterize";
-import { convertWithSoffice } from "../lib/soffice";
 import { saveGeneratedAny } from "./output.service";
 import { getOwnedPdf, stripExtension } from "./pdf.service";
-
-const OFFICE_MIMES: Record<string, string> = {
-  doc: "application/msword",
-  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  xls: "application/vnd.ms-excel",
-  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  ppt: "application/vnd.ms-powerpoint",
-  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-};
-
-const OFFICE_EXT_BY_MIME: Record<string, string> = Object.fromEntries(
-  Object.entries(OFFICE_MIMES).map(([ext, mime]) => [mime, ext]),
-);
 
 async function getOwned(userId: string, fileId: string): Promise<FileModel> {
   const file = await prisma.file.findFirst({ where: { id: fileId, userId, deletedAt: null } });
@@ -119,45 +104,6 @@ export async function imagesToPdf(userId: string, input: ImagesToPdfInput): Prom
   return toFileDTO(created);
 }
 
-/** PDF → XLSX by clustering extracted text into rows/columns. */
-async function pdfToXlsx(userId: string, file: FileModel, input: ConvertInput): Promise<FileDTO> {
-  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const raw = await readBytes(file);
-  // Copy: pdf.js detaches the buffer it receives (see lib/rasterize.ts).
-  const doc = await pdfjs.getDocument({ data: new Uint8Array(raw) }).promise;
-  const workbook = new ExcelJS.Workbook();
-
-  try {
-    for (let p = 1; p <= doc.numPages; p += 1) {
-      const page = await doc.getPage(p);
-      const content = await page.getTextContent();
-      const sheet = workbook.addWorksheet(`Page ${p}`);
-
-      // Group items into rows by Y (2pt tolerance), then order by X.
-      const rows = new Map<number, Array<{ x: number; str: string }>>();
-      for (const item of content.items) {
-        if (!("str" in item) || !item.str.trim()) continue;
-        const y = Math.round(item.transform[5]! / 2) * 2;
-        const x = item.transform[4]!;
-        if (!rows.has(y)) rows.set(y, []);
-        rows.get(y)!.push({ x, str: item.str.trim() });
-      }
-      const sorted = [...rows.entries()].sort((a, b) => b[0] - a[0]); // top → bottom
-      for (const [, items] of sorted) {
-        items.sort((a, b) => a.x - b.x);
-        sheet.addRow(items.map((i) => i.str));
-      }
-    }
-  } finally {
-    await doc.destroy();
-  }
-
-  const bytes = Buffer.from(await workbook.xlsx.writeBuffer());
-  const name = `${stripExtension(input.name ?? file.name)}.xlsx`;
-  const created = await saveGeneratedAny(userId, name, bytes, OFFICE_MIMES.xlsx!, null);
-  return toFileDTO(created);
-}
-
 export async function convert(
   userId: string,
   fileId: string,
@@ -166,7 +112,6 @@ export async function convert(
   const file = await getOwned(userId, fileId);
   const isPdf = file.mimeType === "application/pdf";
   const isImage = file.mimeType.startsWith("image/");
-  const officeExt = OFFICE_EXT_BY_MIME[file.mimeType];
 
   let results: FileDTO[];
 
@@ -174,37 +119,12 @@ export async function convert(
     if (!isPdf) throw badRequest("Image export requires a PDF source", "UNSUPPORTED_CONVERSION");
     await getOwnedPdf(userId, fileId); // validates parseability
     results = await pdfToImages(userId, file, input);
-  } else if (input.target === "pdf") {
-    if (isImage) {
-      results = [await imageToPdf(userId, file, input)];
-    } else if (officeExt) {
-      const out = await convertWithSoffice(await readBytes(file), officeExt, "pdf");
-      const parsed = await PDFDocument.load(out, { ignoreEncryption: true });
-      const name = `${stripExtension(input.name ?? file.name)}.pdf`;
-      const created = await saveGeneratedAny(
-        userId,
-        name,
-        out,
-        "application/pdf",
-        parsed.getPageCount(),
-      );
-      results = [toFileDTO(created)];
-    } else {
+  } else {
+    // target === "pdf": wrap a single image in a page.
+    if (!isImage) {
       throw badRequest("This file is already a PDF or cannot become one", "UNSUPPORTED_CONVERSION");
     }
-  } else if (input.target === "xlsx") {
-    if (!isPdf) throw badRequest("Excel export requires a PDF source", "UNSUPPORTED_CONVERSION");
-    results = [await pdfToXlsx(userId, file, input)];
-  } else {
-    // docx / pptx from PDF via LibreOffice import filters.
-    if (!isPdf) {
-      throw badRequest(`Converting to ${input.target} requires a PDF source`, "UNSUPPORTED_CONVERSION");
-    }
-    const filter = input.target === "docx" ? "writer_pdf_import" : "impress_pdf_import";
-    const out = await convertWithSoffice(await readBytes(file), "pdf", input.target, filter);
-    const name = `${stripExtension(input.name ?? file.name)}.${input.target}`;
-    const created = await saveGeneratedAny(userId, name, out, OFFICE_MIMES[input.target]!, null);
-    results = [toFileDTO(created)];
+    results = [await imageToPdf(userId, file, input)];
   }
 
   await activity.log(userId, "CONVERT", {

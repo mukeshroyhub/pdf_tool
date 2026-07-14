@@ -5,7 +5,6 @@ import { execSync } from "node:child_process";
 import request from "supertest";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { createApp } from "../src/app";
-import { tesseractAvailable } from "../src/lib/tesseract";
 
 const app = createApp();
 
@@ -67,47 +66,6 @@ before(async () => {
   color.setOptions(["Red", "Green", "Blue"]);
   color.addToPage(fpage, { x: 50, y: 140, width: 120, height: 22 });
   formPdfId = await upload("form.pdf", Buffer.from(await formDoc.save()));
-});
-
-describe("GET /api/ocr/languages", () => {
-  it("lists installed language packs", async () => {
-    const res = await request(app).get("/api/ocr/languages").set(auth());
-    assert.equal(res.status, 200);
-    if (await tesseractAvailable()) {
-      assert.ok(res.body.languages.includes("eng"));
-      assert.ok(!res.body.languages.includes("osd"));
-    }
-  });
-});
-
-describe("POST /api/ocr/:id", () => {
-  it("produces a searchable PDF and recognizes the text", { timeout: 120_000 }, async (t) => {
-    if (!(await tesseractAvailable())) {
-      t.skip("tesseract not installed");
-      return;
-    }
-    const res = await request(app)
-      .post(`/api/ocr/${textPdfId}`)
-      .set(auth())
-      .send({ languages: ["eng"], dpi: 300, mode: "new" });
-    assert.equal(res.status, 201);
-    assert.match(res.body.text, /HELLO WORLD/);
-    const parsed = await PDFDocument.load(await downloadBytes(res.body.file.id));
-    assert.equal(parsed.getPageCount(), 1);
-  });
-
-  it("rejects unavailable languages", async (t) => {
-    if (!(await tesseractAvailable())) {
-      t.skip("tesseract not installed");
-      return;
-    }
-    const res = await request(app)
-      .post(`/api/ocr/${textPdfId}`)
-      .set(auth())
-      .send({ languages: ["zzz"] });
-    assert.equal(res.status, 400);
-    assert.equal(res.body.error.code, "LANGUAGE_UNAVAILABLE");
-  });
 });
 
 describe("GET /api/forms/:id", () => {

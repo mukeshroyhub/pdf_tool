@@ -11,7 +11,7 @@ import { fileRouter } from "./routes/file.routes";
 import { activityRouter } from "./routes/activity.routes";
 import { pdfRouter } from "./routes/pdf.routes";
 import { batchRouter, compressRouter, convertRouter } from "./routes/convert.routes";
-import { formRouter, ocrRouter } from "./routes/ocr-form.routes";
+import { formRouter } from "./routes/ocr-form.routes";
 
 export function createApp(): express.Express {
   const app = express();
@@ -52,7 +52,6 @@ export function createApp(): express.Express {
   app.use("/api/convert", convertRouter);
   app.use("/api/compress", compressRouter);
   app.use("/api/batch", batchRouter);
-  app.use("/api/ocr", ocrRouter);
   app.use("/api/forms", formRouter);
 
   app.use(notFoundHandler);

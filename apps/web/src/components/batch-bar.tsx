@@ -2,17 +2,7 @@
 
 import { useState } from "react";
 import type { FileDTO } from "@pdfforge/shared";
-import {
-  Combine,
-  Droplets,
-  FileArchive,
-  FileUp,
-  Images,
-  Loader2,
-  ScanText,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Combine, Droplets, FileArchive, FileUp, Images, Loader2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import {
@@ -112,23 +102,6 @@ export function BatchBar({
       </Button>
       <Button variant="ghost" size="sm" disabled={busy || pdfs.length === 0} onClick={() => setWmOpen(true)}>
         <Droplets /> Watermark
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={busy || pdfs.length === 0}
-        onClick={() =>
-          void run(async () => {
-            const { results } = await batch.mutateAsync({
-              operation: "ocr",
-              fileIds: pdfs.map((f) => f.id),
-              params: { languages: ["eng"] },
-            });
-            reportResults(results, "OCR'd");
-          })
-        }
-      >
-        <ScanText /> OCR
       </Button>
       <Button
         variant="ghost"

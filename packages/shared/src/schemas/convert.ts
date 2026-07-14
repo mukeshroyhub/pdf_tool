@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const fileName = z.string().trim().min(1).max(255);
 
-export const CONVERT_TARGETS = ["pdf", "png", "jpg", "docx", "xlsx", "pptx"] as const;
+export const CONVERT_TARGETS = ["pdf", "png", "jpg"] as const;
 
 export const convertSchema = z.object({
   target: z.enum(CONVERT_TARGETS),
@@ -30,7 +30,7 @@ export const compressSchema = z.object({
 });
 
 export const batchSchema = z.object({
-  operation: z.enum(["convert", "compress", "watermark", "ocr"]),
+  operation: z.enum(["convert", "compress", "watermark"]),
   fileIds: z.array(z.string().min(1)).min(1).max(50),
   /** Operation-specific parameters, validated by the target service. */
   params: z.record(z.string(), z.unknown()).default({}),

@@ -205,7 +205,7 @@ export function useBatch() {
   const invalidate = useInvalidateFileData();
   return useMutation({
     mutationFn: (input: {
-      operation: "convert" | "compress" | "watermark" | "ocr";
+      operation: "convert" | "compress" | "watermark";
       fileIds: string[];
       params: Record<string, unknown>;
     }) => api<{ results: BatchResult[] }>("/api/batch", { method: "POST", body: input }),
@@ -213,31 +213,7 @@ export function useBatch() {
   });
 }
 
-// ── OCR & forms ───────────────────────────────────────────────────────
-
-export function useOcrLanguages() {
-  return useQuery({
-    queryKey: ["ocr-languages"],
-    queryFn: () => api<{ languages: string[] }>("/api/ocr/languages"),
-    staleTime: Infinity,
-  });
-}
-
-export function useOcrPdf(id: string) {
-  const qc = useQueryClient();
-  const invalidate = useInvalidateFileData();
-  return useMutation({
-    mutationFn: (input: { languages: string[]; dpi?: number; mode: "new" | "replace" }) =>
-      api<{ file: { id: string; name: string }; text: string; languages: string[] }>(
-        `/api/ocr/${id}`,
-        { method: "POST", body: input },
-      ),
-    onSuccess: () => {
-      invalidate();
-      void qc.invalidateQueries({ queryKey: ["file", id] });
-    },
-  });
-}
+// ── Forms ─────────────────────────────────────────────────────────────
 
 export interface FormFieldInfo {
   name: string;
