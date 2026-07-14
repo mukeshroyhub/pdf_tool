@@ -30,7 +30,7 @@ setInterval(
 
 const server = app.listen(config.PORT, () => {
   console.info(`PDF Tool API listening on ${config.API_URL} (${config.NODE_ENV})`);
-  if (!config.smtpEnabled) console.info("SMTP not configured — emails will be logged to console");
+  if (!config.emailEnabled) console.info("Email not configured — emails will be logged to console");
   if (!config.googleOAuthEnabled) console.info("Google OAuth not configured — endpoint disabled");
 });
 

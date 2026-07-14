@@ -12,6 +12,9 @@ if (config.smtpEnabled) {
       config.SMTP_USER.length > 0
         ? { user: config.SMTP_USER, pass: config.SMTP_PASS }
         : undefined,
+    // Fail fast instead of hanging when a host blocks outbound SMTP ports.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
   });
 }
 
@@ -22,19 +25,56 @@ interface Mail {
   html: string;
 }
 
+/** Splits `MAIL_FROM` like `PDF Tool <no-reply@x.com>` into name + email. */
+function parseSender(from: string): { name: string; email: string } {
+  const match = from.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
+  if (match) return { name: match[1] || "PDF Tool", email: match[2]! };
+  return { name: "PDF Tool", email: from.trim() };
+}
+
 /**
- * Sends mail via SMTP when configured; otherwise logs the message to the
- * console so verification/reset flows remain fully testable in development.
+ * Sends transactional email through Brevo's HTTPS API (port 443). This avoids
+ * the SMTP ports that many hosts (Render free included) block, and returns
+ * clean errors instead of crashing the process on a socket timeout.
+ */
+async function sendViaBrevo(mail: Mail): Promise<void> {
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": config.BREVO_API_KEY,
+      "content-type": "application/json",
+      accept: "application/json",
+    },
+    body: JSON.stringify({
+      sender: parseSender(config.MAIL_FROM),
+      to: [{ email: mail.to }],
+      subject: mail.subject,
+      htmlContent: mail.html,
+      textContent: mail.text,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Brevo API responded ${res.status}: ${body.slice(0, 200)}`);
+  }
+}
+
+/**
+ * Sends mail via Brevo's API when configured, else SMTP, else logs to the
+ * console so verification/reset flows stay testable in development.
  */
 async function send(mail: Mail): Promise<void> {
+  if (config.brevoApiEnabled) {
+    await sendViaBrevo(mail);
+    return;
+  }
   if (transporter) {
     await transporter.sendMail({ from: config.MAIL_FROM, ...mail });
     return;
   }
-  // Dev fallback: print the email so links can be copied from the API console.
   console.info(
     [
-      "\n━━━ DEV EMAIL (SMTP not configured) ━━━",
+      "\n━━━ DEV EMAIL (email not configured) ━━━",
       `To:      ${mail.to}`,
       `Subject: ${mail.subject}`,
       mail.text,

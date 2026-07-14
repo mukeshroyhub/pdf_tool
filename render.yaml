@@ -50,6 +50,9 @@ services:
         sync: false
       - key: MAIL_FROM
         sync: false
+      # Brevo transactional email over HTTPS (SMTP ports are blocked on free).
+      - key: BREVO_API_KEY
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET

@@ -18,6 +18,9 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional().default(""),
   SMTP_PASS: z.string().optional().default(""),
   MAIL_FROM: z.string().default("PDF Tool <no-reply@pdfforge.local>"),
+  // Brevo transactional email over HTTPS (port 443). Preferred over SMTP,
+  // which many hosts (incl. Render free) block on ports 25/465/587.
+  BREVO_API_KEY: z.string().optional().default(""),
 
   // Object storage: "local" (disk) in dev, "s3" (S3-compatible, e.g. R2) in prod.
   STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
@@ -54,5 +57,7 @@ export const config = {
   isTest: parsed.data.NODE_ENV === "test",
   googleOAuthEnabled:
     parsed.data.GOOGLE_CLIENT_ID.length > 0 && parsed.data.GOOGLE_CLIENT_SECRET.length > 0,
+  brevoApiEnabled: parsed.data.BREVO_API_KEY.length > 0,
   smtpEnabled: parsed.data.SMTP_HOST.length > 0,
+  emailEnabled: parsed.data.BREVO_API_KEY.length > 0 || parsed.data.SMTP_HOST.length > 0,
 } as const;
