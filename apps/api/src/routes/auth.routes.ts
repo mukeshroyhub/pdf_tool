@@ -191,8 +191,19 @@ authRouter.get("/google/callback", async (req, res, next) => {
       clientMeta(req),
     );
     setRefreshCookie(res, result.refreshToken, result.refreshExpiresAt);
-    // The web app finishes the session by calling /api/auth/refresh.
-    res.redirect(`${config.WEB_URL}/auth/callback`);
+    // Hand off with a 200 HTML page (not a 302). The web app proxies /api/* to
+    // this API; a server redirect here is followed by the proxy and strips the
+    // Set-Cookie before it reaches the browser. A client-side redirect keeps the
+    // cookie on the response the browser actually receives.
+    const target = `${config.WEB_URL}/auth/callback`;
+    // Meta-refresh (not a script) so it works under the strict API CSP.
+    res
+      .status(200)
+      .type("html")
+      .send(
+        `<!doctype html><meta http-equiv="refresh" content="0;url=${target}">` +
+          `<p>Completing sign-in… <a href="${target}">continue</a></p>`,
+      );
   } catch (err) {
     next(err);
   }
