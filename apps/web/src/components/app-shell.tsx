@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { FileCog, LayoutDashboard, Loader2, LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
 /** Authenticated layout shell: header nav + content. Redirects guests to login. */
@@ -62,6 +63,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-muted-foreground md:inline">{user.email}</span>
+            <ThemeToggle />
             <Button
               variant="outline"
               size="sm"
