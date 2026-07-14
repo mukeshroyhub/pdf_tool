@@ -1,0 +1,17 @@
+# Replace pdftool.example.com with YOUR domain (e.g. a free DuckDNS subdomain
+# like pdftool-mukesh.duckdns.org). Caddy fetches and renews the HTTPS
+# certificate automatically — no manual certbot needed.
+
+pdftool.example.com {
+	encode gzip
+
+	# API calls go straight to the Express service.
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+
+	# Everything else is the Next.js web app.
+	handle {
+		reverse_proxy web:3000
+	}
+}

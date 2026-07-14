@@ -13,7 +13,6 @@ import { PdfViewer } from "@/components/pdf/pdf-viewer";
 import { PdfOrganizer } from "@/components/pdf/pdf-organizer";
 import { PdfEditor } from "@/components/pdf/pdf-editor";
 import { FormPanel } from "@/components/pdf/form-panel";
-import { OcrDialog } from "@/components/pdf/ocr-dialog";
 import { RedactTool } from "@/components/pdf/redact-tool";
 import { RemoveTextDialog } from "@/components/pdf/remove-text-dialog";
 import { Button } from "@/components/ui/button";
@@ -130,7 +129,6 @@ function FileContent({ id }: { id: string }) {
             </div>
           ) : null}
           <ConvertMenu file={file} />
-          {isPdf ? <OcrDialog fileId={file.id} /> : null}
           {isPdf ? <RemoveTextDialog fileId={file.id} /> : null}
           {isPdf ? <CompressDialog fileId={file.id} /> : null}
           <Button

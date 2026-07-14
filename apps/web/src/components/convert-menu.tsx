@@ -2,15 +2,7 @@
 
 import { useState } from "react";
 import type { FileDTO } from "@pdfforge/shared";
-import {
-  FileImage,
-  FileSpreadsheet,
-  FileText,
-  FileType2,
-  Loader2,
-  Presentation,
-  RefreshCcw,
-} from "lucide-react";
+import { FileImage, FileType2, Loader2, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import { useConvertFile } from "@/lib/queries";
@@ -26,9 +18,6 @@ import {
 const PDF_TARGETS = [
   { target: "png", label: "PNG images", icon: FileImage },
   { target: "jpg", label: "JPG images", icon: FileImage },
-  { target: "docx", label: "Word (.docx)", icon: FileText },
-  { target: "xlsx", label: "Excel (.xlsx)", icon: FileSpreadsheet },
-  { target: "pptx", label: "PowerPoint (.pptx)", icon: Presentation },
 ] as const;
 
 export function ConvertMenu({ file }: { file: FileDTO }) {
@@ -56,7 +45,7 @@ export function ConvertMenu({ file }: { file: FileDTO }) {
   };
 
   if (!isPdf) {
-    // Images and Office documents convert to PDF directly.
+    // Images convert to PDF directly.
     return (
       <Button variant="outline" size="sm" disabled={running} onClick={() => void run("pdf")}>
         {running ? <Loader2 className="animate-spin" /> : <RefreshCcw />}

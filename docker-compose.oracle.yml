@@ -1,0 +1,52 @@
+# Production stack for a single Linux VM (e.g. Oracle Cloud Always Free ARM).
+# The VM is pure compute: the database lives on Neon and files on Supabase,
+# so this box holds no state and can be rebuilt any time.
+#
+# Run from the repo root:
+#   docker compose -f docker-compose.oracle.yml up -d --build
+#
+# Values come from a .env file next to this one (see .env.oracle.example).
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+    expose:
+      - "4000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    expose:
+      - "3000"
+
+  # Caddy terminates HTTPS and auto-provisions a free Let's Encrypt certificate
+  # for your domain. It routes /api/* to the API and everything else to the web
+  # app — same single-origin design as the Render deployment.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,12 +1,11 @@
 FROM node:22-bookworm-slim AS base
 WORKDIR /app
 
-# LibreOffice powers Office <-> PDF conversion; Tesseract powers OCR
-# (add more tesseract-ocr-<lang> packages for extra OCR languages).
+# fonts-liberation gives the canvas renderer standard fonts. LibreOffice (Office
+# conversion) and Tesseract (OCR) were removed to keep the image small and the
+# memory footprint low enough for small instances.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-      libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress fonts-liberation \
-      tesseract-ocr tesseract-ocr-eng tesseract-ocr-deu tesseract-ocr-fra tesseract-ocr-spa tesseract-ocr-hin \
+ && apt-get install -y --no-install-recommends fonts-liberation \
  && rm -rf /var/lib/apt/lists/*
 
 # Install workspace dependencies with the full monorepo manifest set.

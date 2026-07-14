@@ -9,8 +9,7 @@ import { ApiError } from "@/lib/api";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
-const ACCEPT =
-  ".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,application/pdf,image/png,image/jpeg,image/webp";
+const ACCEPT = ".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp";
 
 export function UploadDropzone() {
   const [dragging, setDragging] = useState(false);
@@ -84,7 +83,7 @@ export function UploadDropzone() {
           </span>
           <p className="text-sm font-medium">Drop files here or click to upload</p>
           <p className="text-xs text-muted-foreground">
-            PDF, images and Office documents · up to 100 MB per file
+            PDF and image files · up to 100 MB per file
           </p>
         </>
       )}
