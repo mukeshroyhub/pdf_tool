@@ -126,11 +126,13 @@ authRouter.post("/resend-verification", requireAuth, async (req, res, next) => {
 
 // ── Google OAuth (authorization-code flow) ─────────────────────────────
 
+// The callback goes through the WEB origin (which proxies /api/* to this API),
+// so the session cookie is set on the same domain the web app reads it from.
 const googleClient = () =>
   new OAuth2Client({
     clientId: config.GOOGLE_CLIENT_ID,
     clientSecret: config.GOOGLE_CLIENT_SECRET,
-    redirectUri: `${config.API_URL}/api/auth/google/callback`,
+    redirectUri: `${config.WEB_URL}/api/auth/google/callback`,
   });
 
 const OAUTH_STATE_COOKIE = "pf_oauth_state";
