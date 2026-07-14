@@ -30,5 +30,7 @@ RUN node scripts/use-postgres.mjs \
 ENV NODE_ENV=production
 EXPOSE 4000
 
-# Sync the schema, then start. tsx executes TypeScript directly.
-CMD ["sh", "-c", "cd apps/api && npx prisma db push --accept-data-loss && npx tsx src/index.ts"]
+# Sync the schema, then start. Without --accept-data-loss, a schema change that
+# would DROP data aborts the deploy (protecting the data) instead of silently
+# applying it; safe additive changes still apply. tsx executes TypeScript directly.
+CMD ["sh", "-c", "cd apps/api && npx prisma db push && npx tsx src/index.ts"]
