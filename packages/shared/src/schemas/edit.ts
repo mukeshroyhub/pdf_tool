@@ -130,7 +130,29 @@ export const watermarkSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),
 });
 
+export const PAGE_NUMBER_POSITIONS = [
+  "bottom-center",
+  "bottom-right",
+  "bottom-left",
+  "top-center",
+  "top-right",
+  "top-left",
+] as const;
+
+export const pageNumbersSchema = z.object({
+  position: z.enum(PAGE_NUMBER_POSITIONS).default("bottom-center"),
+  startAt: z.number().int().min(1).max(100_000).default(1),
+  fontSize: z.number().min(6).max(48).default(11),
+  /** "n" = "1"; "n-of-total" = "1 of 10"; "page-n" = "Page 1". */
+  format: z.enum(["n", "n-of-total", "page-n"]).default("n"),
+  margin: z.number().min(4).max(200).default(28),
+  color: colorSchema.default({ r: 0.3, g: 0.3, b: 0.3 }),
+  mode: z.enum(["new", "replace"]).default("new"),
+  name: z.string().trim().min(1).max(255).optional(),
+});
+
 export type EditElement = z.infer<typeof editElementSchema>;
 export type AnnotateInput = z.infer<typeof annotateSchema>;
 export type WatermarkInput = z.infer<typeof watermarkSchema>;
+export type PageNumbersInput = z.infer<typeof pageNumbersSchema>;
 export type RgbColor = z.infer<typeof colorSchema>;

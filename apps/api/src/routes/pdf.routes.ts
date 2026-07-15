@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   annotateSchema,
+  pageNumbersSchema,
   redactSchema,
   removeTextSchema,
   mergeSchema,
@@ -67,6 +68,15 @@ pdfRouter.post("/:id/annotate", validateBody(annotateSchema), async (req, res, n
 pdfRouter.post("/:id/watermark", validateBody(watermarkSchema), async (req, res, next) => {
   try {
     const file = await edit.watermark(req.auth!.sub, req.params.id!, req.body);
+    res.status(201).json({ file });
+  } catch (err) {
+    next(err);
+  }
+});
+
+pdfRouter.post("/:id/page-numbers", validateBody(pageNumbersSchema), async (req, res, next) => {
+  try {
+    const file = await edit.addPageNumbers(req.auth!.sub, req.params.id!, req.body);
     res.status(201).json({ file });
   } catch (err) {
     next(err);

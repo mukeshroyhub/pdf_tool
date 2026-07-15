@@ -209,6 +209,18 @@ describe("POST /api/pdf/:id/replace-pages", () => {
   });
 });
 
+describe("POST /api/pdf/:id/page-numbers", () => {
+  it("stamps page numbers and keeps the page count", async () => {
+    const res = await request(app)
+      .post(`/api/pdf/${docA}/page-numbers`)
+      .set(auth())
+      .send({ position: "bottom-right", format: "n-of-total", mode: "new" });
+    assert.equal(res.status, 201);
+    const doc = await downloadPdf(res.body.file.id);
+    assert.equal(doc.getPageCount(), 4);
+  });
+});
+
 describe("activity", () => {
   it("logs MERGE/SPLIT/ORGANIZE/REPLACE_PAGES", async () => {
     const res = await request(app).get("/api/activity?limit=50").set(auth());

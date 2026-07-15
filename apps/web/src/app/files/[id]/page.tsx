@@ -19,6 +19,7 @@ import { RemoveTextDialog } from "@/components/pdf/remove-text-dialog";
 import { Button } from "@/components/ui/button";
 import { ConvertMenu } from "@/components/convert-menu";
 import { CompressDialog } from "@/components/compress-dialog";
+import { PageNumbersDialog } from "@/components/page-numbers-dialog";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -136,6 +137,7 @@ function FileContent({ id }: { id: string }) {
           ) : null}
           <ConvertMenu file={file} />
           {isPdf ? <RemoveTextDialog fileId={file.id} /> : null}
+          {isPdf ? <PageNumbersDialog fileId={file.id} /> : null}
           {isPdf ? <CompressDialog fileId={file.id} /> : null}
           <Button
             variant="outline"

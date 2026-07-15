@@ -11,6 +11,7 @@ import type {
   AnnotateInput,
   EditElement,
   FileDTO,
+  PageNumbersInput,
   RgbColor,
   WatermarkInput,
 } from "@pdfforge/shared";
@@ -257,5 +258,54 @@ export async function watermark(
     fileId: result.id,
     detail: `"${input.text}" on ${file.name}`,
   });
+  return toFileDTO(result);
+}
+
+/** Stamps a page number onto every page at the chosen corner. */
+export async function addPageNumbers(
+  userId: string,
+  fileId: string,
+  input: PageNumbersInput,
+): Promise<FileDTO> {
+  const file = await getOwnedPdf(userId, fileId);
+  const doc = await loadPdf(file);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const pages = doc.getPages();
+  const lastNumber = input.startAt + pages.length - 1;
+
+  pages.forEach((page, i) => {
+    const num = input.startAt + i;
+    const label =
+      input.format === "n-of-total"
+        ? `${num} of ${lastNumber}`
+        : input.format === "page-n"
+          ? `Page ${num}`
+          : `${num}`;
+    const { width, height } = page.getSize();
+    const textWidth = font.widthOfTextAtSize(label, input.fontSize);
+    const y = input.position.startsWith("top")
+      ? height - input.margin - input.fontSize
+      : input.margin;
+    const x = input.position.endsWith("center")
+      ? (width - textWidth) / 2
+      : input.position.endsWith("right")
+        ? width - input.margin - textWidth
+        : input.margin;
+    page.drawText(label, { x, y, size: input.fontSize, font, color: toRgb(input.color) });
+  });
+
+  const bytes = await doc.save();
+  const pageCount = doc.getPageCount();
+  const result =
+    input.mode === "replace"
+      ? await overwrite(userId, file, bytes, pageCount)
+      : await saveGenerated(
+          userId,
+          withPdfExtension(input.name ?? `${stripExtension(file.name)}-numbered`),
+          bytes,
+          pageCount,
+        );
+
+  await activity.log(userId, "PAGE_NUMBERS", { fileId: result.id, detail: file.name });
   return toFileDTO(result);
 }

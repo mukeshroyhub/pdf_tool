@@ -153,6 +153,23 @@ export function useWatermarkPdf(id: string) {
   });
 }
 
+export function useAddPageNumbers(id: string) {
+  const qc = useQueryClient();
+  const invalidate = useInvalidateFileData();
+  return useMutation({
+    mutationFn: (input: {
+      position: string;
+      startAt?: number;
+      format?: string;
+      mode: "new" | "replace";
+    }) => api<{ file: FileDTO }>(`/api/pdf/${id}/page-numbers`, { method: "POST", body: input }),
+    onSuccess: () => {
+      invalidate();
+      void qc.invalidateQueries({ queryKey: ["file", id] });
+    },
+  });
+}
+
 // ── Convert / compress / batch ────────────────────────────────────────
 
 export function useConvertFile(id: string) {
