@@ -1,11 +1,11 @@
 FROM node:22-bookworm-slim AS base
 WORKDIR /app
 
-# fonts-liberation gives the canvas renderer standard fonts. LibreOffice (Office
-# conversion) and Tesseract (OCR) were removed to keep the image small and the
-# memory footprint low enough for small instances.
+# fonts-liberation gives the canvas renderer standard fonts; qpdf (small) powers
+# password protect / unlock. LibreOffice and Tesseract were removed to keep the
+# image small and the memory footprint low enough for small instances.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends fonts-liberation \
+ && apt-get install -y --no-install-recommends fonts-liberation qpdf \
  && rm -rf /var/lib/apt/lists/*
 
 # Install workspace dependencies with the full monorepo manifest set.

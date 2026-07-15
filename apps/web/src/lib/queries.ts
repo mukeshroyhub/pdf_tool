@@ -170,6 +170,24 @@ export function useAddPageNumbers(id: string) {
   });
 }
 
+export function useProtectPdf(id: string) {
+  const invalidate = useInvalidateFileData();
+  return useMutation({
+    mutationFn: (input: { password: string; name?: string }) =>
+      api<{ file: FileDTO }>(`/api/pdf/${id}/protect`, { method: "POST", body: input }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUnlockPdf(id: string) {
+  const invalidate = useInvalidateFileData();
+  return useMutation({
+    mutationFn: (input: { password: string; name?: string }) =>
+      api<{ file: FileDTO }>(`/api/pdf/${id}/unlock`, { method: "POST", body: input }),
+    onSuccess: invalidate,
+  });
+}
+
 // ── Convert / compress / batch ────────────────────────────────────────
 
 export function useConvertFile(id: string) {

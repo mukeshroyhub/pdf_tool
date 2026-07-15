@@ -52,7 +52,19 @@ export const replacePagesSchema = z.object({
   name: fileName.optional(),
 });
 
+export const protectSchema = z.object({
+  password: z.string().min(4, "Password must be at least 4 characters").max(200),
+  name: fileName.optional(),
+});
+
+export const unlockSchema = z.object({
+  password: z.string().min(1, "Password is required").max(200),
+  name: fileName.optional(),
+});
+
 export type MergeInput = z.infer<typeof mergeSchema>;
 export type SplitInput = z.infer<typeof splitSchema>;
 export type RebuildInput = z.infer<typeof rebuildSchema>;
 export type ReplacePagesInput = z.infer<typeof replacePagesSchema>;
+export type ProtectInput = z.infer<typeof protectSchema>;
+export type UnlockInput = z.infer<typeof unlockSchema>;

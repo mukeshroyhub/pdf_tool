@@ -5,6 +5,7 @@ import { execSync } from "node:child_process";
 import request from "supertest";
 import { PDFDocument, rgb } from "pdf-lib";
 import { createApp } from "../src/app";
+import { qpdfAvailable } from "../src/lib/qpdf";
 
 const app = createApp();
 
@@ -217,6 +218,34 @@ describe("POST /api/pdf/:id/page-numbers", () => {
       .send({ position: "bottom-right", format: "n-of-total", mode: "new" });
     assert.equal(res.status, 201);
     const doc = await downloadPdf(res.body.file.id);
+    assert.equal(doc.getPageCount(), 4);
+  });
+});
+
+describe("POST /api/pdf/:id/protect + /unlock", () => {
+  it("protects then unlocks with the same password", { timeout: 60_000 }, async (t) => {
+    if (!(await qpdfAvailable())) {
+      t.skip("qpdf not installed");
+      return;
+    }
+    const enc = await request(app)
+      .post(`/api/pdf/${docA}/protect`)
+      .set(auth())
+      .send({ password: "secret123" });
+    assert.equal(enc.status, 201);
+
+    const wrong = await request(app)
+      .post(`/api/pdf/${enc.body.file.id}/unlock`)
+      .set(auth())
+      .send({ password: "nope" });
+    assert.equal(wrong.status, 400);
+
+    const dec = await request(app)
+      .post(`/api/pdf/${enc.body.file.id}/unlock`)
+      .set(auth())
+      .send({ password: "secret123" });
+    assert.equal(dec.status, 201);
+    const doc = await downloadPdf(dec.body.file.id);
     assert.equal(doc.getPageCount(), 4);
   });
 });
