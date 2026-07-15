@@ -1,9 +1,10 @@
 import { Router, type Request, type Response } from "express";
 import multer from "multer";
+import archiver from "archiver";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 import { rm } from "node:fs/promises";
-import { listFilesQuerySchema, updateFileSchema } from "@pdfforge/shared";
+import { listFilesQuerySchema, updateFileSchema, zipFilesSchema } from "@pdfforge/shared";
 import { requireAuth } from "../middleware/auth";
 import { validateBody } from "../middleware/validate";
 import { AppError, badRequest } from "../lib/errors";
@@ -90,6 +91,23 @@ fileRouter.post("/", async (req, res, next) => {
     // Always clean up staged temp files (saveUploadedFile may have consumed
     // them already; rm with force ignores missing files).
     await Promise.all(uploaded.map((f) => rm(f.path, { force: true }).catch(() => undefined)));
+  }
+});
+
+fileRouter.post("/zip", validateBody(zipFilesSchema), async (req, res, next) => {
+  try {
+    const entries = await files.filesForZip(req.auth!.sub, req.body.fileIds);
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", 'attachment; filename="pdf-tool-files.zip"');
+    const archive = archiver("zip", { zlib: { level: 6 } });
+    archive.on("error", next);
+    archive.pipe(res);
+    for (const entry of entries) {
+      archive.append(await storage.downloadStream(entry.storageKey), { name: entry.name });
+    }
+    await archive.finalize();
+  } catch (err) {
+    next(err);
   }
 });
 

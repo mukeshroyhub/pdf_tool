@@ -159,3 +159,34 @@ export async function forDownload(userId: string, fileId: string): Promise<FileM
   await activity.log(userId, "DOWNLOAD", { fileId: file.id, detail: file.name });
   return file;
 }
+
+/** Resolves owned files for a ZIP download, giving each a unique entry name. */
+export async function filesForZip(
+  userId: string,
+  fileIds: string[],
+): Promise<Array<{ name: string; storageKey: string }>> {
+  const files = await prisma.file.findMany({
+    where: { id: { in: fileIds }, userId, deletedAt: null },
+  });
+  if (files.length === 0) throw notFound("No files found");
+
+  const used = new Set<string>();
+  const entries = files.map((f) => {
+    let name = f.name;
+    if (used.has(name)) {
+      const dot = f.name.lastIndexOf(".");
+      const stem = dot > 0 ? f.name.slice(0, dot) : f.name;
+      const ext = dot > 0 ? f.name.slice(dot) : "";
+      let n = 2;
+      do {
+        name = `${stem} (${n})${ext}`;
+        n += 1;
+      } while (used.has(name));
+    }
+    used.add(name);
+    return { name, storageKey: f.storageKey };
+  });
+
+  await activity.log(userId, "DOWNLOAD", { detail: `${entries.length} files as ZIP` });
+  return entries;
+}

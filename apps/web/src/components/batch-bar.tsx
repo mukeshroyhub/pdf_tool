@@ -2,9 +2,19 @@
 
 import { useState } from "react";
 import type { FileDTO } from "@pdfforge/shared";
-import { Combine, Droplets, FileArchive, FileUp, Images, Loader2, Trash2, X } from "lucide-react";
+import {
+  Combine,
+  Droplets,
+  FileArchive,
+  FileUp,
+  FolderArchive,
+  Images,
+  Loader2,
+  Trash2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
-import { ApiError } from "@/lib/api";
+import { ApiError, apiDownloadPost } from "@/lib/api";
 import {
   useBatch,
   useDeleteFile,
@@ -145,6 +155,20 @@ export function BatchBar({
         }
       >
         <Combine /> Merge
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={busy}
+        onClick={async () => {
+          try {
+            await apiDownloadPost("/api/files/zip", { fileIds: ids }, "pdf-tool-files.zip");
+          } catch (err) {
+            toast.error(err instanceof ApiError ? err.message : "Download failed");
+          }
+        }}
+      >
+        <FolderArchive /> Download ZIP
       </Button>
       {busy ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
       <Button

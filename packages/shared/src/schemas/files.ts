@@ -28,7 +28,12 @@ export const deleteActivitiesSchema = z.object({
   ids: z.array(z.string().min(1)).min(1).max(500),
 });
 
+export const zipFilesSchema = z.object({
+  fileIds: z.array(z.string().min(1)).min(1).max(50),
+});
+
 export type UpdateFileInput = z.infer<typeof updateFileSchema>;
+export type ZipFilesInput = z.infer<typeof zipFilesSchema>;
 export type ListFilesQuery = z.infer<typeof listFilesQuerySchema>;
 export type ListActivityQuery = z.infer<typeof listActivityQuerySchema>;
 export type DeleteActivitiesInput = z.infer<typeof deleteActivitiesSchema>;

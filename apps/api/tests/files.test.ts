@@ -154,6 +154,23 @@ describe("activity timeline", () => {
   });
 });
 
+describe("POST /api/files/zip", () => {
+  it("streams a zip of the selected files", async () => {
+    const res = await request(app)
+      .post("/api/files/zip")
+      .set(auth())
+      .send({ fileIds: [uploadedId] })
+      .buffer(true)
+      .parse((r, cb) => {
+        const chunks: Buffer[] = [];
+        r.on("data", (c: Buffer) => chunks.push(c));
+        r.on("end", () => cb(null, Buffer.concat(chunks)));
+      });
+    assert.equal(res.status, 200);
+    assert.equal((res.body as Buffer).subarray(0, 2).toString(), "PK"); // zip magic bytes
+  });
+});
+
 describe("DELETE /api/files/:id", () => {
   it("deletes the file and releases storage", async () => {
     const res = await request(app).delete(`/api/files/${uploadedId}`).set(auth());
