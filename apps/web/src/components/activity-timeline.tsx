@@ -11,8 +11,10 @@ import {
   Droplets,
   Eraser,
   FileArchive,
+  Hash,
   LayoutGrid,
   Loader2,
+  Lock,
   Pencil,
   Pencil as PencilIcon,
   RefreshCcw,
@@ -23,6 +25,7 @@ import {
   Star,
   StarOff,
   Trash2,
+  Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
@@ -58,6 +61,9 @@ const ACTION_META: Record<ActivityDTO["action"], { icon: typeof Download; label:
   REDACT: { icon: ShieldAlert, label: "Redacted" },
   REMOVE_TEXT: { icon: Eraser, label: "Removed text from" },
   WATERMARK: { icon: Droplets, label: "Watermarked" },
+  PAGE_NUMBERS: { icon: Hash, label: "Numbered pages in" },
+  PROTECT: { icon: Lock, label: "Protected" },
+  UNLOCK: { icon: Unlock, label: "Unlocked" },
 };
 
 /** Checkbox that supports the indeterminate (partial) visual state. */

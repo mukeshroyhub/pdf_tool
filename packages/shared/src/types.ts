@@ -67,7 +67,10 @@ export type ActivityAction =
   | "FORM_FILL"
   | "FORM_CREATE"
   | "REDACT"
-  | "REMOVE_TEXT";
+  | "REMOVE_TEXT"
+  | "PAGE_NUMBERS"
+  | "PROTECT"
+  | "UNLOCK";
 
 export interface ActivityDTO {
   id: string;
