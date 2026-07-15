@@ -1,6 +1,7 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
+import compression from "compression";
 import cookieParser from "cookie-parser";
 import { config } from "./config";
 import { apiLimiter } from "./middleware/rateLimit";
@@ -16,8 +17,21 @@ import { formRouter } from "./routes/ocr-form.routes";
 export function createApp(): express.Express {
   const app = express();
 
-  app.set("trust proxy", 1); // behind Nginx in production
+  app.set("trust proxy", 1); // behind the web proxy in production
   app.disable("x-powered-by");
+
+  // Lightweight request log (method, path, status, duration). Health-check
+  // pings and the test suite are skipped to keep logs clean.
+  if (!config.isTest) {
+    app.use((req, res, next) => {
+      const start = Date.now();
+      res.on("finish", () => {
+        if (req.path === "/api/health") return;
+        console.info(`${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - start}ms`);
+      });
+      next();
+    });
+  }
 
   app.use(
     helmet({
@@ -36,13 +50,16 @@ export function createApp(): express.Express {
       credentials: true,
     }),
   );
+  app.use(compression()); // gzip JSON responses and downloads
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
-  app.use("/api", apiLimiter);
 
+  // Health check sits above the rate limiter so pings don't consume the budget.
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", uptime: process.uptime() });
   });
+
+  app.use("/api", apiLimiter);
 
   app.use("/api/auth", authRouter);
   app.use("/api/users", userRouter);
