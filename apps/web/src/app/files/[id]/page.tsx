@@ -21,6 +21,7 @@ import { ConvertMenu } from "@/components/convert-menu";
 import { CompressDialog } from "@/components/compress-dialog";
 import { PageNumbersDialog } from "@/components/page-numbers-dialog";
 import { ProtectDialog } from "@/components/protect-dialog";
+import { SignatureDialog } from "@/components/signature-dialog";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -137,6 +138,7 @@ function FileContent({ id }: { id: string }) {
             </div>
           ) : null}
           <ConvertMenu file={file} />
+          {isPdf ? <SignatureDialog fileId={file.id} doc={doc} /> : null}
           {isPdf ? <RemoveTextDialog fileId={file.id} /> : null}
           {isPdf ? <PageNumbersDialog fileId={file.id} /> : null}
           {isPdf ? <ProtectDialog fileId={file.id} /> : null}
