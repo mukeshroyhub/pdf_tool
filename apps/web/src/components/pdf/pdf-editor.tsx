@@ -701,23 +701,44 @@ export function PdfEditor({
   );
 }
 
-/** Maps a text element's font to a matching CSS family + weight. */
-function fontCss(font: string): { fontFamily: string; fontWeight: number } {
+/** Maps a text element's font to a matching CSS family + weight/style. */
+function fontCss(font: string): {
+  fontFamily: string;
+  fontWeight: number;
+  fontStyle?: "italic";
+} {
+  const sans = "Helvetica, Arial, sans-serif";
+  const serif = '"Times New Roman", Times, serif';
+  // Inter is loaded app-wide via next/font (--font-inter); browsers without it
+  // fall back to Helvetica, mirroring the server's fallback.
+  const inter = "var(--font-inter), Inter, Helvetica, sans-serif";
   switch (font) {
     case "times":
-      return { fontFamily: '"Times New Roman", Times, serif', fontWeight: 400 };
+      return { fontFamily: serif, fontWeight: 400 };
+    case "times-bold":
+      return { fontFamily: serif, fontWeight: 700 };
+    case "times-italic":
+      return { fontFamily: serif, fontWeight: 400, fontStyle: "italic" };
     case "courier":
       return { fontFamily: '"Courier New", Courier, monospace', fontWeight: 400 };
     case "helvetica-bold":
-      return { fontFamily: "Helvetica, Arial, sans-serif", fontWeight: 700 };
-    // Inter is loaded app-wide via next/font (--font-inter); browsers without
-    // it fall back to Helvetica, mirroring the server's fallback.
+      return { fontFamily: sans, fontWeight: 700 };
+    case "helvetica-oblique":
+      return { fontFamily: sans, fontWeight: 400, fontStyle: "italic" };
     case "inter":
-      return { fontFamily: "var(--font-inter), Inter, Helvetica, sans-serif", fontWeight: 400 };
+      return { fontFamily: inter, fontWeight: 400 };
+    case "inter-medium":
+      return { fontFamily: inter, fontWeight: 500 };
+    case "inter-semibold":
+      return { fontFamily: inter, fontWeight: 600 };
     case "inter-bold":
-      return { fontFamily: "var(--font-inter), Inter, Helvetica, sans-serif", fontWeight: 700 };
+      return { fontFamily: inter, fontWeight: 700 };
+    case "inter-extrabold":
+      return { fontFamily: inter, fontWeight: 800 };
+    case "inter-black":
+      return { fontFamily: inter, fontWeight: 900 };
     default:
-      return { fontFamily: "Helvetica, Arial, sans-serif", fontWeight: 400 };
+      return { fontFamily: sans, fontWeight: 400 };
   }
 }
 
@@ -816,6 +837,7 @@ function ElementsLayer({
                   color: rgbToCss(el.color),
                   fontFamily: f.fontFamily,
                   fontWeight: f.fontWeight,
+                  fontStyle: f.fontStyle,
                 }}
                 className={cn("pointer-events-none absolute whitespace-pre", ring)}
               >

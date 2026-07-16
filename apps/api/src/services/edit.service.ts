@@ -35,31 +35,45 @@ import {
 const FONT_MAP: Record<string, StandardFonts> = {
   helvetica: StandardFonts.Helvetica,
   "helvetica-bold": StandardFonts.HelveticaBold,
+  "helvetica-oblique": StandardFonts.HelveticaOblique,
   times: StandardFonts.TimesRoman,
+  "times-bold": StandardFonts.TimesRomanBold,
+  "times-italic": StandardFonts.TimesRomanItalic,
   courier: StandardFonts.Courier,
 };
 
 /** Custom fonts embedded from font files; value = fallback standard font. */
 const CUSTOM_FONT_FALLBACK: Record<string, StandardFonts> = {
   inter: StandardFonts.Helvetica,
+  "inter-medium": StandardFonts.Helvetica,
+  "inter-semibold": StandardFonts.HelveticaBold,
   "inter-bold": StandardFonts.HelveticaBold,
+  "inter-extrabold": StandardFonts.HelveticaBold,
+  "inter-black": StandardFonts.HelveticaBold,
 };
+
+/** At and above this size, prefer Inter's Display optical variant (headlines). */
+const DISPLAY_SIZE_PT = 20;
 
 /**
  * Resolves an element's font: embeds Inter (via fontkit) when requested and
- * installed, otherwise the mapped standard font. Cached per document.
+ * installed, otherwise the mapped standard font. Headline-sized text prefers
+ * the InterDisplay optical variant. Cached per document + variant.
  */
 async function resolveFont(
   doc: PDFDocument,
   name: string,
+  fontSize: number,
   fonts: Map<string, PDFFont>,
 ): Promise<PDFFont> {
-  const cached = fonts.get(name);
+  const display = name in CUSTOM_FONT_FALLBACK && fontSize >= DISPLAY_SIZE_PT;
+  const cacheKey = `${name}${display ? ":display" : ""}`;
+  const cached = fonts.get(cacheKey);
   if (cached) return cached;
 
   let font: PDFFont | null = null;
   if (name in CUSTOM_FONT_FALLBACK) {
-    const bytes = await getCustomFontBytes(name);
+    const bytes = await getCustomFontBytes(name, { display });
     if (bytes) {
       doc.registerFontkit(fontkit);
       // subset: only the used glyphs are embedded, keeping output small.
@@ -71,7 +85,7 @@ async function resolveFont(
       FONT_MAP[name] ?? CUSTOM_FONT_FALLBACK[name] ?? StandardFonts.Helvetica,
     );
   }
-  fonts.set(name, font);
+  fonts.set(cacheKey, font);
   return font;
 }
 
@@ -123,7 +137,7 @@ async function drawElement(
 
   switch (element.type) {
     case "text": {
-      const font = await resolveFont(doc, element.font, fonts);
+      const font = await resolveFont(doc, element.font, element.fontSize, fonts);
       // Draw each line; y refers to the TOP of the text block.
       const lines = element.text.split("\n");
       const lineHeight = element.fontSize * 1.25;

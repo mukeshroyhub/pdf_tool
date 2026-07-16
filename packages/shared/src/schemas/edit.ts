@@ -24,11 +24,28 @@ export const textElementSchema = z.object({
   text: z.string().min(1).max(5000),
   fontSize: z.number().min(4).max(144),
   color: colorSchema,
-  // "inter" / "inter-bold" embed the open-source Inter font server-side — a
-  // much closer match for modern geometric brand fonts (Uber Move, Circular,
-  // Gotham…) than Helvetica. Falls back to Helvetica when Inter is unavailable.
+  // The inter-* families embed the open-source Inter font server-side — a much
+  // closer match for modern geometric brand fonts (Uber Move, Circular,
+  // Gotham…) than Helvetica, with granular weights so heavy headlines don't
+  // collapse to plain Bold. All inter-* fall back to Helvetica when the font
+  // isn't installed. The extra standard variants keep bold serif text bold and
+  // italic text slanted instead of flattening everything to regular.
   font: z
-    .enum(["helvetica", "helvetica-bold", "times", "courier", "inter", "inter-bold"])
+    .enum([
+      "helvetica",
+      "helvetica-bold",
+      "helvetica-oblique",
+      "times",
+      "times-bold",
+      "times-italic",
+      "courier",
+      "inter",
+      "inter-medium",
+      "inter-semibold",
+      "inter-bold",
+      "inter-extrabold",
+      "inter-black",
+    ])
     .default("helvetica"),
 });
 

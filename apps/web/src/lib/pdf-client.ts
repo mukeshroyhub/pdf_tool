@@ -122,10 +122,17 @@ export function renderPage(
 export type EditorFont =
   | "helvetica"
   | "helvetica-bold"
+  | "helvetica-oblique"
   | "times"
+  | "times-bold"
+  | "times-italic"
   | "courier"
   | "inter"
-  | "inter-bold";
+  | "inter-medium"
+  | "inter-semibold"
+  | "inter-bold"
+  | "inter-extrabold"
+  | "inter-black";
 
 /** A single run of existing text in a page, positioned for the editor overlay. */
 export interface PageTextLine {
@@ -160,19 +167,40 @@ interface LoadedFontData {
 function matchFont(fontName: string, fontFamily: string, data: LoadedFontData | null): EditorFont {
   const n = `${data?.name ?? ""} ${fontName} ${fontFamily}`.toLowerCase();
   if (/mono|courier|consol/.test(n)) return "courier";
-  const isSerif = /serif|times|georgia|roman|minion|garamond|book/.test(n) && !/sans/.test(n);
-  if (isSerif) return "times";
+
+  const isItalic = data?.italic === true || /italic|oblique/.test(n);
   const isBold =
     data?.bold === true || data?.black === true || /bold|black|heavy|semibold|\bsb\b/.test(n);
+
+  const isSerif = /serif|times|georgia|roman|minion|garamond|book/.test(n) && !/sans/.test(n);
+  if (isSerif) {
+    if (isBold) return "times-bold";
+    if (isItalic) return "times-italic";
+    return "times";
+  }
+
   // Modern geometric/grotesque brand fonts (Uber Move, Circular, Gotham, …)
   // look much closer to Inter than to Helvetica — the server embeds Inter for
-  // these (falling back to Helvetica when it isn't installed).
+  // these (falling back to Helvetica when it isn't installed). Weight is kept
+  // granular: a Black headline replaced with plain Bold still reads as wrong.
   const isGeometric =
     /uber|move|circular|gotham|proxima|avenir|futura|century gothic|montserrat|poppins|nunito|quicksand|dm sans|product sans|graphik|sofia|greycliff|inter|sf pro|san francisco|roboto|lato|geist/.test(
       n,
     );
-  if (isGeometric) return isBold ? "inter-bold" : "inter";
-  return isBold ? "helvetica-bold" : "helvetica";
+  if (isGeometric) {
+    // Order matters: "semibold"/"extrabold" contain "bold", so match the more
+    // specific names first.
+    if (data?.black === true || /black|heavy/.test(n)) return "inter-black";
+    if (/extrabold|extra bold|ultra/.test(n)) return "inter-extrabold";
+    if (/semibold|semi bold|demibold|\bsb\b/.test(n)) return "inter-semibold";
+    if (data?.bold === true || /bold/.test(n)) return "inter-bold";
+    if (/medium/.test(n)) return "inter-medium";
+    return "inter";
+  }
+
+  if (isBold) return "helvetica-bold";
+  if (isItalic) return "helvetica-oblique";
+  return "helvetica";
 }
 
 // Multiply two 2D affine matrices [a,b,c,d,e,f] (PDF/pdf.js convention).
