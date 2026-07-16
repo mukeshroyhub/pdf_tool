@@ -46,6 +46,44 @@ export function translateElement(el: EditorElement, dx: number, dy: number): Edi
   }
 }
 
+/** Element types that support corner-handle resizing. */
+export const RESIZABLE_TYPES: ReadonlySet<string> = new Set([
+  "text",
+  "rect",
+  "ellipse",
+  "highlight",
+  "whiteout",
+  "image",
+]);
+
+/**
+ * Resizes an element by a bottom-right corner drag delta (PDF points).
+ * Text scales its font size with the box width (a text box has no independent
+ * width — its size IS the font size). Images scale uniformly so they never
+ * distort (signatures must keep their aspect). Plain boxes resize freely.
+ */
+export function resizeElement(el: EditorElement, dx: number, dy: number): EditorElement {
+  switch (el.type) {
+    case "text": {
+      const b = elementBounds(el);
+      const scale = Math.max(0.2, (b.w + dx) / b.w);
+      const size = Math.min(144, Math.max(4, el.fontSize * scale));
+      return { ...el, fontSize: Math.round(size * 10) / 10 };
+    }
+    case "image": {
+      const scale = Math.max(0.05, (el.w + dx) / el.w);
+      return { ...el, w: Math.max(8, el.w * scale), h: Math.max(8, el.h * scale) };
+    }
+    case "rect":
+    case "ellipse":
+    case "highlight":
+    case "whiteout":
+      return { ...el, w: Math.max(8, el.w + dx), h: Math.max(8, el.h + dy) };
+    default:
+      return el; // lines and ink strokes are not resizable
+  }
+}
+
 /** Bounding box (PDF points, top-left origin) used for hit areas. */
 export function elementBounds(el: EditorElement): { x: number; y: number; w: number; h: number } {
   switch (el.type) {

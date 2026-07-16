@@ -44,6 +44,8 @@ import { ImagePickerDialog, SignatureDialog, WatermarkDialog } from "./editor-di
 import {
   elementBounds,
   hexToRgb,
+  resizeElement,
+  RESIZABLE_TYPES,
   rgbToCss,
   translateElement,
   type EditorElement,
@@ -69,7 +71,7 @@ const TOOLS: Array<{ id: Tool; label: string; icon: typeof Type }> = [
 ];
 
 interface Drag {
-  kind: "create" | "move" | "ink";
+  kind: "create" | "move" | "resize" | "ink";
   page: number;
   startX: number;
   startY: number;
@@ -365,6 +367,18 @@ export function PdfEditor({
 
     switch (tool) {
       case "select": {
+        // A grab on the selected element's bottom-right handle starts a resize
+        // (checked before hit-testing so the handle wins over overlapping elements).
+        if (selectedKey !== null) {
+          const sel = elements.find((el) => el.key === selectedKey && el.page === page);
+          if (sel && RESIZABLE_TYPES.has(sel.type)) {
+            const b = elementBounds(sel);
+            if (Math.abs(x - (b.x + b.w)) <= 8 && Math.abs(y - (b.y + b.h)) <= 8) {
+              setDrag({ kind: "resize", page, startX: x, startY: y, curX: x, curY: y, targetKey: selectedKey });
+              break;
+            }
+          }
+        }
         const hit = hitTest(page, x, y);
         setSelectedKey(hit?.key ?? null);
         if (hit) {
@@ -421,6 +435,17 @@ export function PdfEditor({
       if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
         commit((prev) =>
           prev.map((el) => (el.key === d.targetKey ? translateElement(el, dx, dy) : el)),
+        );
+      }
+      return;
+    }
+
+    if (d.kind === "resize" && d.targetKey !== undefined) {
+      const dx = d.curX - d.startX;
+      const dy = d.curY - d.startY;
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+        commit((prev) =>
+          prev.map((el) => (el.key === d.targetKey ? resizeElement(el, dx, dy) : el)),
         );
       }
       return;
@@ -761,11 +786,25 @@ function ElementsLayer({
     drag?.kind === "move"
       ? { key: drag.targetKey, dx: drag.curX - drag.startX, dy: drag.curY - drag.startY }
       : null;
+  const resizeDelta =
+    drag?.kind === "resize"
+      ? { key: drag.targetKey, dx: drag.curX - drag.startX, dy: drag.curY - drag.startY }
+      : null;
 
-  const shift = (el: EditorElement): EditorElement =>
-    moveDelta && el.key === moveDelta.key
-      ? translateElement(el, moveDelta.dx, moveDelta.dy)
-      : el;
+  const shift = (el: EditorElement): EditorElement => {
+    if (moveDelta && el.key === moveDelta.key)
+      return translateElement(el, moveDelta.dx, moveDelta.dy);
+    if (resizeDelta && el.key === resizeDelta.key)
+      return resizeElement(el, resizeDelta.dx, resizeDelta.dy);
+    return el;
+  };
+
+  // Bottom-right resize handle for the selected element (tracks live resizes).
+  const selectedShifted = elements.filter((el) => el.key === selectedKey).map(shift)[0];
+  const handleBounds =
+    selectedShifted && RESIZABLE_TYPES.has(selectedShifted.type)
+      ? elementBounds(selectedShifted)
+      : null;
 
   return (
     <>
@@ -899,6 +938,15 @@ function ElementsLayer({
             return null;
         }
       })}
+
+      {/* resize handle on the selected element */}
+      {handleBounds ? (
+        <div
+          className="pointer-events-none absolute h-3 w-3 rounded-sm border-2 border-primary bg-background"
+          style={{ left: handleBounds.x + handleBounds.w - 6, top: handleBounds.y + handleBounds.h - 6 }}
+          aria-hidden
+        />
+      ) : null}
 
       {/* rubber band preview */}
       {drag?.kind === "create" ? (
