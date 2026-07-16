@@ -133,6 +133,8 @@ export interface PageTextLine {
   fontSize: number;
   /** Closest supported font to the original run, for size-accurate replacement. */
   font: EditorFont;
+  /** Fill color of the original run (0–1 RGB), so replacements match it. */
+  color: { r: number; g: number; b: number };
 }
 
 /** Picks the closest supported standard font to an original PDF run. */
@@ -177,15 +179,51 @@ export async function getPageTextLines(
   const cached = perDoc.get(pageNumber);
   if (cached) return cached;
 
-  await loadPdfjs();
+  const pdfjs = await loadPdfjs();
   const page = await doc.getPage(pageNumber);
   const viewport = page.getViewport({ scale: 1 });
   const content = await page.getTextContent();
   const styles = content.styles as Record<string, { fontFamily?: string }>;
 
+  // pdf.js text extraction does not expose fill color, so replacements used to
+  // come out black even when the original text was grey or colored. Walk the
+  // page's operator list tracking the fill color, recording it at each
+  // text-showing op; those show-ops line up (in order) with the text items.
+  const showColors: Array<{ r: number; g: number; b: number }> = [];
+  try {
+    const OPS = pdfjs.OPS;
+    const opList = await page.getOperatorList();
+    let fill = { r: 0, g: 0, b: 0 };
+    for (let i = 0; i < opList.fnArray.length; i++) {
+      const fn = opList.fnArray[i];
+      const args = opList.argsArray[i] as unknown[] | Uint8ClampedArray | null;
+      if (fn === OPS.setFillRGBColor && args) {
+        // Evaluator normalizes most color ops to RGB with 0–255 components.
+        const a = args as unknown as number[];
+        fill = { r: (a[0] ?? 0) / 255, g: (a[1] ?? 0) / 255, b: (a[2] ?? 0) / 255 };
+      } else if (fn === OPS.setFillGray && args) {
+        const g = Number((args as unknown as number[])[0] ?? 0); // 0–1 gray
+        fill = { r: g, g, b: g };
+      } else if (
+        fn === OPS.showText ||
+        fn === OPS.showSpacedText ||
+        fn === OPS.nextLineShowText ||
+        fn === OPS.nextLineSetSpacingShowText
+      ) {
+        showColors.push(fill);
+      }
+    }
+  } catch {
+    // Color detection is best-effort: without it, replacements default to black.
+  }
+
   const lines: PageTextLine[] = [];
+  let runIndex = 0;
   for (const item of content.items) {
-    if (!("str" in item) || !item.str || !item.str.trim()) continue;
+    if (!("str" in item)) continue;
+    const colorIdx = runIndex;
+    runIndex += 1; // count every text run so indices stay aligned with show-ops
+    if (!item.str || !item.str.trim()) continue;
     // Compose viewport (flips y to top-left origin) with the item's text matrix.
     const tx = mulMatrix(viewport.transform as number[], item.transform);
     const fontHeight = Math.hypot(tx[2]!, tx[3]!);
@@ -201,6 +239,7 @@ export async function getPageTextLines(
       // Keep one decimal so the replacement size matches the original precisely.
       fontSize: Math.round(fontHeight * 10) / 10,
       font: matchFont(fontName, fontFamily),
+      color: showColors[colorIdx] ?? { r: 0, g: 0, b: 0 },
     });
   }
 

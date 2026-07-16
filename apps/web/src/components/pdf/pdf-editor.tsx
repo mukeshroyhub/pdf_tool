@@ -287,9 +287,10 @@ export function PdfEditor({
       // Placed so the rendered baseline lands on the original's baseline.
       y: baseline - size,
       text: line.text,
-      // Match the original run's exact size and closest font family.
+      // Match the original run's exact size, closest font family, and color —
+      // a black replacement inside grey text is exactly the mismatch users see.
       fontSize: size,
-      color: { r: 0, g: 0, b: 0 },
+      color: line.color,
       font: line.font,
     };
     commit((prev) => [...prev, whiteout, textEl]);
