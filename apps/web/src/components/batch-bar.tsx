@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError, apiDownloadPost } from "@/lib/api";
+import { zipDownload } from "@/lib/local-ops";
 import {
   useBatch,
   useDeleteFile,
@@ -162,7 +163,11 @@ export function BatchBar({
         disabled={busy}
         onClick={async () => {
           try {
-            await apiDownloadPost("/api/files/zip", { fileIds: ids }, "pdf-tool-files.zip");
+            // Stage the selected library files just long enough to build the
+            // ZIP server-side, download it, then delete the server copies.
+            await zipDownload(ids, (serverIds) =>
+              apiDownloadPost("/api/files/zip", { fileIds: serverIds }, "pdf-tool-files.zip"),
+            );
           } catch (err) {
             toast.error(err instanceof ApiError ? err.message : "Download failed");
           }

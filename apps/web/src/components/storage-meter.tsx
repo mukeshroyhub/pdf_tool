@@ -1,15 +1,20 @@
 "use client";
 
 import { HardDrive } from "lucide-react";
-import { useAuth } from "@/lib/auth-context";
+import { useStorageUsage } from "@/lib/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { formatBytes } from "@/lib/format";
 
+/**
+ * Shows how much space the browser-local library is using. Usage/quota come
+ * from the Storage API (IndexedDB), not the server — files live on this device.
+ */
 export function StorageMeter() {
-  const { user } = useAuth();
-  if (!user) return null;
-  const percent = Math.min(100, Math.round((user.storageUsed / user.storageLimit) * 100));
+  const { data } = useStorageUsage();
+  const used = data?.usedBytes ?? 0;
+  const quota = data?.quotaBytes ?? null;
+  const percent = quota && quota > 0 ? Math.min(100, Math.round((used / quota) * 100)) : 0;
 
   return (
     <Card>
@@ -19,9 +24,9 @@ export function StorageMeter() {
         </span>
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex items-baseline justify-between gap-2">
-            <p className="text-sm font-medium">Storage</p>
+            <p className="text-sm font-medium">Browser storage</p>
             <p className="text-xs text-muted-foreground">
-              {formatBytes(user.storageUsed)} of {formatBytes(user.storageLimit)} ({percent}%)
+              {quota ? `${formatBytes(used)} of ${formatBytes(quota)}` : formatBytes(used)}
             </p>
           </div>
           <Progress value={percent} />

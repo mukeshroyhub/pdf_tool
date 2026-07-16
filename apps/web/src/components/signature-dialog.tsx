@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { PenLine, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { ApiError, apiUpload } from "@/lib/api";
+import { api, ApiError, apiUpload } from "@/lib/api";
 import { useAnnotatePdf } from "@/lib/queries";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -150,6 +150,9 @@ export function SignatureDialog({ fileId, doc }: { fileId: string; doc: PDFDocum
         elements: [{ page: page - 1, type: "image", x, y, w, h, imageFileId }],
         mode: "new",
       });
+      // The signature image was staged on the server only to be baked into the
+      // PDF; remove it so nothing lingers (the PDF result lives in IndexedDB).
+      await api(`/api/files/${imageFileId}`, { method: "DELETE" }).catch(() => undefined);
       toast.success("Signature added");
       await refreshUser();
       setOpen(false);

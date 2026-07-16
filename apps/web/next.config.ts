@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
 
+// Next.js dev-mode Fast Refresh evaluates code with eval(), which the strict
+// production CSP forbids. Allow 'unsafe-eval' in development only so hot reload
+// works locally; production keeps the locked-down policy.
+const isDev = process.env.NODE_ENV !== "production";
+
 const nextConfig: NextConfig = {
   transpilePackages: ["@pdfforge/shared"],
   // Proxy API calls through Next so the browser talks to a single origin
@@ -27,7 +32,7 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+              `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""}`,
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' blob: data:",
               "font-src 'self' data:",

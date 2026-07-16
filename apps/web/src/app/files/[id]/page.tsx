@@ -6,7 +6,8 @@ import { useSearchParams } from "next/navigation";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { ArrowLeft, ClipboardList, Download, LayoutGrid, Loader2, PencilRuler, ScanEye, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
-import { ApiError, apiDownload } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { downloadFile } from "@/lib/local-store";
 import { useFile } from "@/lib/queries";
 import { openPdfDocument } from "@/lib/pdf-client";
 import { AppShell } from "@/components/app-shell";
@@ -147,7 +148,7 @@ function FileContent({ id }: { id: string }) {
             variant="outline"
             size="sm"
             onClick={() =>
-              void apiDownload(`/api/files/${file.id}/download`, file.name).catch((err) =>
+              void downloadFile(file.id).catch((err) =>
                 toast.error(err instanceof ApiError ? err.message : "Download failed"),
               )
             }

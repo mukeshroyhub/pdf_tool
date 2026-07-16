@@ -138,6 +138,24 @@ export function apiUpload<T>(
   });
 }
 
+/**
+ * Fetches a protected file and returns its raw bytes as a Blob (no download).
+ * Used by the browser-local flow to pull a processed result back into
+ * IndexedDB. Retries once after a token refresh on 401.
+ */
+export async function apiFetchBlob(path: string, retried = false): Promise<Blob> {
+  const token = getAccessToken();
+  const res = await fetch(path, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    credentials: "include",
+  });
+  if (res.status === 401 && !retried && (await tryRefresh())) {
+    return apiFetchBlob(path, true);
+  }
+  if (!res.ok) throw await parseError(res);
+  return res.blob();
+}
+
 /** Fetches a protected file and triggers a browser download. */
 export async function apiDownload(path: string, filename: string): Promise<void> {
   const token = getAccessToken();

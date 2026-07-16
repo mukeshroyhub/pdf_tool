@@ -1,7 +1,8 @@
 "use client";
 
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import { getAccessToken, tryRefresh, ApiError } from "./api";
+import { ApiError } from "./api";
+import { getBlob } from "./local-store";
 
 let pdfjsPromise: Promise<typeof import("pdfjs-dist")> | null = null;
 
@@ -19,23 +20,30 @@ export function loadPdfjs() {
   return pdfjsPromise;
 }
 
-/** Fetches a protected file's bytes (with one refresh retry) and opens it. */
+/** Opens a PDF from the browser-local library (IndexedDB) by its local id. */
 export async function openPdfDocument(fileId: string): Promise<PDFDocumentProxy> {
-  const fetchBytes = async (): Promise<Response> => {
-    const token = getAccessToken();
-    return fetch(`/api/files/${fileId}/download`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      credentials: "include",
-    });
-  };
-
-  let res = await fetchBytes();
-  if (res.status === 401 && (await tryRefresh())) res = await fetchBytes();
-  if (!res.ok) throw new ApiError(res.status, "PDF_FETCH_FAILED", "Could not load the PDF");
-
-  const data = await res.arrayBuffer();
+  const blob = await getBlob(fileId);
+  if (!blob) throw new ApiError(404, "PDF_NOT_FOUND", "This file is no longer in your browser");
+  const data = await blob.arrayBuffer();
   const pdfjs = await loadPdfjs();
   return pdfjs.getDocument({ data }).promise;
+}
+
+/**
+ * Counts pages of a PDF blob client-side (best effort). Used when adding a file
+ * to the library so the list can show a page count without a server round-trip.
+ */
+export async function countPdfPages(source: Blob): Promise<number | null> {
+  try {
+    const data = await source.arrayBuffer();
+    const pdfjs = await loadPdfjs();
+    const doc = await pdfjs.getDocument({ data }).promise;
+    const pages = doc.numPages;
+    await doc.destroy();
+    return pages;
+  } catch {
+    return null; // never block an upload on page counting
+  }
 }
 
 /**
@@ -181,21 +189,13 @@ export async function getPageTextLines(
 
 const objectUrlCache = new Map<string, string>();
 
-/** Fetches a protected file as a blob object URL (cached per session). */
+/** Returns a blob object URL for a library file (cached per session). */
 export async function fetchFileObjectUrl(fileId: string): Promise<string> {
   const cached = objectUrlCache.get(fileId);
   if (cached) return cached;
-  const fetchIt = async (): Promise<Response> => {
-    const token = getAccessToken();
-    return fetch(`/api/files/${fileId}/download`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      credentials: "include",
-    });
-  };
-  let res = await fetchIt();
-  if (res.status === 401 && (await tryRefresh())) res = await fetchIt();
-  if (!res.ok) throw new ApiError(res.status, "FILE_FETCH_FAILED", "Could not load the file");
-  const url = URL.createObjectURL(await res.blob());
+  const blob = await getBlob(fileId);
+  if (!blob) throw new ApiError(404, "FILE_NOT_FOUND", "This file is no longer in your browser");
+  const url = URL.createObjectURL(blob);
   objectUrlCache.set(fileId, url);
   return url;
 }

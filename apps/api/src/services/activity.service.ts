@@ -16,20 +16,15 @@ export function toActivityDTO(a: ActivityWithFile): ActivityDTO {
 }
 
 export async function log(
-  userId: string,
-  action: ActivityDTO["action"],
-  opts: { fileId?: string; detail?: string } = {},
+  _userId: string,
+  _action: ActivityDTO["action"],
+  _opts: { fileId?: string; detail?: string } = {},
 ): Promise<void> {
-  // Respect the user's preference: when logging is disabled, record nothing.
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { activityLogging: true },
-  });
-  if (user && !user.activityLogging) return;
-
-  await prisma.activity.create({
-    data: { userId, action, fileId: opts.fileId ?? null, detail: opts.detail ?? null },
-  });
+  // Privacy by design: the server intentionally records NO activity about files.
+  // Files are processed transiently and never kept, so nothing about them —
+  // including their names — is written to the database. The web app keeps a
+  // private activity log in the browser instead (see web/src/lib/local-store).
+  // Kept as a no-op so existing call sites don't need to change.
 }
 
 /** Deletes the given activity entries that belong to the user. Returns the count removed. */

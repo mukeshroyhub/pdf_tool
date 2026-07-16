@@ -16,7 +16,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ApiError, apiDownload } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { downloadFile } from "@/lib/local-store";
 import { useDeleteFile, useUpdateFile } from "@/lib/queries";
 import { useAuth } from "@/lib/auth-context";
 import { formatBytes, formatRelativeTime } from "@/lib/format";
@@ -164,7 +165,7 @@ function FileRow({
 
   const download = async () => {
     try {
-      await apiDownload(`/api/files/${file.id}/download`, file.name);
+      await downloadFile(file.id);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Download failed");
     }
