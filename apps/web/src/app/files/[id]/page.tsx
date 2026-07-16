@@ -4,12 +4,12 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import { ArrowLeft, ChevronDown, ClipboardList, Download, LayoutGrid, Loader2, PencilRuler, ScanEye, ShieldAlert, Wrench } from "lucide-react";
+import { ArrowLeft, ChevronDown, ClipboardList, Download, LayoutGrid, Loader2, Lock, PencilRuler, ScanEye, ShieldAlert, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import { downloadFile } from "@/lib/local-store";
 import { useFile } from "@/lib/queries";
-import { openPdfDocument } from "@/lib/pdf-client";
+import { fetchFileObjectUrl, isPasswordError, openPdfDocument } from "@/lib/pdf-client";
 import { AppShell } from "@/components/app-shell";
 import { PdfViewer } from "@/components/pdf/pdf-viewer";
 import { PdfOrganizer } from "@/components/pdf/pdf-organizer";
@@ -18,6 +18,7 @@ import { FormPanel } from "@/components/pdf/form-panel";
 import { RedactTool } from "@/components/pdf/redact-tool";
 import { RemoveTextDialog } from "@/components/pdf/remove-text-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ConvertMenu } from "@/components/convert-menu";
 import { CompressDialog } from "@/components/compress-dialog";
 import { PageNumbersDialog } from "@/components/page-numbers-dialog";
@@ -45,12 +46,20 @@ function FileContent({ id }: { id: string }) {
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [docError, setDocError] = useState<string | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
+  // Password flow for encrypted PDFs: ask, retry, flag a wrong attempt.
+  const [password, setPassword] = useState<string | null>(null);
+  const [passwordDraft, setPasswordDraft] = useState("");
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [wrongPassword, setWrongPassword] = useState(false);
+  // Image files preview via an object URL from the browser library.
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>(
     MODES.includes(requestedMode as Mode) ? (requestedMode as Mode) : "view",
   );
 
   const file = data?.file;
   const isPdf = file?.mimeType === "application/pdf";
+  const isImage = file?.mimeType.startsWith("image/") ?? false;
   // Re-open the document when the file record changes (e.g. after overwrite).
   const version = file?.updatedAt;
 
@@ -59,19 +68,45 @@ function FileContent({ id }: { id: string }) {
     let cancelled = false;
     setDoc(null);
     setDocError(null);
-    openPdfDocument(file.id)
+    openPdfDocument(file.id, password ?? undefined)
       .then((d) => {
-        if (!cancelled) setDoc(d);
+        if (!cancelled) {
+          setDoc(d);
+          setNeedsPassword(false);
+          setWrongPassword(false);
+        }
       })
       .catch((err) => {
-        if (!cancelled) {
+        if (cancelled) return;
+        if (isPasswordError(err)) {
+          // Encrypted: ask for the password (and note when an attempt failed).
+          setNeedsPassword(true);
+          setWrongPassword(password !== null);
+        } else {
           setDocError(err instanceof ApiError ? err.message : "Could not open the PDF");
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [file, isPdf, version]);
+  }, [file, isPdf, version, password]);
+
+  // Load an object URL for image files so they preview inline.
+  useEffect(() => {
+    if (!file || !isImage) return;
+    let cancelled = false;
+    setImageUrl(null);
+    fetchFileObjectUrl(file.id)
+      .then((url) => {
+        if (!cancelled) setImageUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setImageUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [file, isImage, version]);
 
   if (isLoading) {
     return (
@@ -190,10 +225,57 @@ function FileContent({ id }: { id: string }) {
         </div>
       </div>
 
-      {!isPdf ? (
+      {isImage ? (
+        imageUrl ? (
+          <div className="flex justify-center rounded-xl border bg-card p-4">
+            {/* eslint-disable-next-line @next/next/no-img-element -- blob URL from IndexedDB */}
+            <img
+              src={imageUrl}
+              alt={file.name}
+              className="max-h-[75vh] max-w-full rounded-md object-contain"
+            />
+          </div>
+        ) : (
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )
+      ) : !isPdf ? (
         <p className="py-16 text-center text-sm text-muted-foreground">
-          Preview is available for PDF files only. Use Download to open this file locally.
+          Preview is not available for this file type. Use Download to open it locally.
         </p>
+      ) : needsPassword ? (
+        <form
+          className="mx-auto max-w-sm space-y-4 rounded-xl border bg-card p-8 text-center"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (passwordDraft.length > 0) setPassword(passwordDraft);
+          }}
+        >
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Lock className="h-6 w-6" />
+          </span>
+          <div>
+            <p className="font-semibold">This PDF is password protected</p>
+            <p className="text-sm text-muted-foreground">
+              Enter the password to view and edit it.
+            </p>
+          </div>
+          <Input
+            type="password"
+            value={passwordDraft}
+            onChange={(e) => setPasswordDraft(e.target.value)}
+            placeholder="Password"
+            autoFocus
+            aria-label="PDF password"
+          />
+          {wrongPassword ? (
+            <p className="text-sm text-destructive">Wrong password. Try again.</p>
+          ) : null}
+          <Button type="submit" className="w-full" disabled={passwordDraft.length === 0}>
+            Unlock
+          </Button>
+        </form>
       ) : docError ? (
         <p className="py-16 text-center text-sm text-destructive">{docError}</p>
       ) : !doc ? (

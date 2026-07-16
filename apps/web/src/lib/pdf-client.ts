@@ -20,13 +20,34 @@ export function loadPdfjs() {
   return pdfjsPromise;
 }
 
-/** Opens a PDF from the browser-local library (IndexedDB) by its local id. */
-export async function openPdfDocument(fileId: string): Promise<PDFDocumentProxy> {
+/**
+ * Opens a PDF from the browser-local library (IndexedDB) by its local id.
+ * Pass `password` for encrypted files. When a password is required or wrong,
+ * pdf.js rejects with an error whose name is "PasswordException" — callers can
+ * detect that via isPasswordError() and prompt the user.
+ */
+export async function openPdfDocument(
+  fileId: string,
+  password?: string,
+): Promise<PDFDocumentProxy> {
   const blob = await getBlob(fileId);
   if (!blob) throw new ApiError(404, "PDF_NOT_FOUND", "This file is no longer in your browser");
   const data = await blob.arrayBuffer();
   const pdfjs = await loadPdfjs();
-  return pdfjs.getDocument({ data }).promise;
+  return pdfjs.getDocument({ data, password }).promise;
+}
+
+/**
+ * True when a pdf.js open failure means "needs a (correct) password".
+ * Duck-typed on purpose: pdf.js's PasswordException does not reliably extend
+ * Error across versions, so an instanceof check would miss it.
+ */
+export function isPasswordError(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    (err as { name?: unknown }).name === "PasswordException"
+  );
 }
 
 /**
