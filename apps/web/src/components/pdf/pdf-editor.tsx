@@ -260,7 +260,60 @@ export function PdfEditor({
    * drop an editable text element pre-filled with the same words, then open the
    * text dialog. Saving bakes it in via the normal whiteout + text pipeline.
    */
-  const editExistingText = (page: number, line: PageTextLine) => {
+  /**
+   * Samples the dominant glyph color of a text run from the rendered page
+   * canvas. Visual ground truth: works regardless of how exotic the PDF's
+   * drawing commands are. Ignores near-white pixels (background) and picks the
+   * most frequent quantized color among the rest. Returns null when sampling
+   * isn't possible (canvas not rendered yet, or run box is empty/white).
+   */
+  const sampleRunColor = (
+    overlay: HTMLElement,
+    line: PageTextLine,
+  ): { r: number; g: number; b: number } | null => {
+    const canvas = overlay.parentElement?.querySelector("canvas");
+    if (!canvas || canvas.width === 0) return null;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    // Overlay coords are page points (scale 1); canvas is devicePixelRatio-scaled.
+    const ratio = canvas.width / overlay.clientWidth;
+    const sx = Math.max(0, Math.floor(line.x * ratio));
+    const sy = Math.max(0, Math.floor(line.y * ratio));
+    const sw = Math.min(canvas.width - sx, Math.ceil(line.w * ratio));
+    const sh = Math.min(canvas.height - sy, Math.ceil(line.h * ratio));
+    if (sw <= 0 || sh <= 0) return null;
+    let data: Uint8ClampedArray;
+    try {
+      data = ctx.getImageData(sx, sy, sw, sh).data;
+    } catch {
+      return null;
+    }
+    // Histogram of non-background pixels, quantized to 32-levels per channel so
+    // antialiased edge blends collapse onto the core glyph color.
+    const counts = new Map<number, number>();
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i]!, g = data[i + 1]!, b = data[i + 2]!;
+      if (r > 235 && g > 235 && b > 235) continue; // background / whiteout
+      const key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    let best = -1, bestKey = 0;
+    for (const [key, count] of counts) {
+      if (count > best) { best = count; bestKey = key; }
+    }
+    if (best < 4) return null; // too few ink pixels to trust
+    return {
+      r: (((bestKey >> 10) & 31) * 8 + 4) / 255,
+      g: (((bestKey >> 5) & 31) * 8 + 4) / 255,
+      b: ((bestKey & 31) * 8 + 4) / 255,
+    };
+  };
+
+  const editExistingText = (
+    page: number,
+    line: PageTextLine,
+    sampledColor?: { r: number; g: number; b: number } | null,
+  ) => {
     const size = Math.min(144, Math.max(4, line.fontSize));
     // line.y is the run's top; its baseline sits one font-size below.
     const baseline = line.y + line.fontSize;
@@ -287,10 +340,11 @@ export function PdfEditor({
       // Placed so the rendered baseline lands on the original's baseline.
       y: baseline - size,
       text: line.text,
-      // Match the original run's exact size, closest font family, and color —
-      // a black replacement inside grey text is exactly the mismatch users see.
+      // Match the original run's exact size, closest font family, and color.
+      // Prefer the pixel-sampled color (ground truth from the rendered page);
+      // fall back to the color recovered from the PDF's drawing commands.
       fontSize: size,
-      color: line.color,
+      color: sampledColor ?? line.color,
       font: line.font,
     };
     commit((prev) => [...prev, whiteout, textEl]);
@@ -324,7 +378,9 @@ export function PdfEditor({
       case "edittext": {
         const line = textLineAt(page, x, y);
         if (line) {
-          editExistingText(page, line);
+          // Sample the true glyph color from the rendered canvas BEFORE the
+          // whiteout element covers it.
+          editExistingText(page, line, sampleRunColor(overlay, line));
         } else {
           toast.info("No selectable text there — this works on digital PDFs, not scans.");
         }

@@ -137,13 +137,27 @@ export interface PageTextLine {
   color: { r: number; g: number; b: number };
 }
 
-/** Picks the closest supported standard font to an original PDF run. */
-function matchFont(fontName: string, fontFamily: string): EditorFont {
-  const n = `${fontName} ${fontFamily}`.toLowerCase();
+/** Real font attributes pdf.js loads for a page (exported by the evaluator). */
+interface LoadedFontData {
+  name?: string;
+  bold?: boolean;
+  italic?: boolean;
+  black?: boolean;
+}
+
+/**
+ * Picks the closest supported standard font to an original PDF run.
+ * `data` carries the real PostScript name and bold/italic flags from the
+ * loaded font object — item.fontName alone is an internal id (e.g. "g_d0_f1"),
+ * which is why name-only heuristics used to miss bold text entirely.
+ */
+function matchFont(fontName: string, fontFamily: string, data: LoadedFontData | null): EditorFont {
+  const n = `${data?.name ?? ""} ${fontName} ${fontFamily}`.toLowerCase();
   if (/mono|courier|consol/.test(n)) return "courier";
   const isSerif = /serif|times|georgia|roman|minion|garamond|book/.test(n) && !/sans/.test(n);
   if (isSerif) return "times";
-  const isBold = /bold|black|heavy|semibold|\bsb\b/.test(n);
+  const isBold =
+    data?.bold === true || data?.black === true || /bold|black|heavy|semibold|\bsb\b/.test(n);
   return isBold ? "helvetica-bold" : "helvetica";
 }
 
@@ -230,6 +244,16 @@ export async function getPageTextLines(
     if (fontHeight <= 0) continue;
     const fontName = item.fontName ?? "";
     const fontFamily = styles?.[fontName]?.fontFamily ?? "";
+    // The loaded font object carries the real name + bold/italic flags. It is
+    // resolved by the getOperatorList() call above; guard anyway.
+    let fontData: LoadedFontData | null = null;
+    try {
+      if (fontName && page.commonObjs.has(fontName)) {
+        fontData = page.commonObjs.get(fontName) as LoadedFontData;
+      }
+    } catch {
+      fontData = null;
+    }
     lines.push({
       text: item.str,
       x: tx[4]!,
@@ -238,7 +262,7 @@ export async function getPageTextLines(
       h: fontHeight,
       // Keep one decimal so the replacement size matches the original precisely.
       fontSize: Math.round(fontHeight * 10) / 10,
-      font: matchFont(fontName, fontFamily),
+      font: matchFont(fontName, fontFamily, fontData),
       color: showColors[colorIdx] ?? { r: 0, g: 0, b: 0 },
     });
   }
