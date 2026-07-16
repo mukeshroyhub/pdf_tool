@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -26,7 +25,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   return (
@@ -52,67 +50,33 @@ function SettingsContent() {
       <div className="grid gap-6 md:grid-cols-2">
         <ProfileCard user={user} />
         {user.hasPassword ? <PasswordCard /> : <GoogleOnlyCard />}
-        <ActivityLogCard user={user} />
+        <PrivacyCard />
       </div>
     </div>
   );
 }
 
-function ActivityLogCard({ user }: { user: UserDTO }) {
-  const { setUser } = useAuth();
-  const [saving, setSaving] = useState(false);
-  const enabled = user.activityLogging;
-
-  const toggle = async () => {
-    setSaving(true);
-    try {
-      const data = await api<{ user: UserDTO }>("/api/users/me", {
-        method: "PATCH",
-        body: { activityLogging: !enabled },
-      });
-      setUser(data.user);
-      toast.success(enabled ? "Activity logging turned off" : "Activity logging turned on");
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Could not update setting");
-    } finally {
-      setSaving(false);
-    }
-  };
-
+/**
+ * Replaced the old activity-logging toggle: the server no longer records any
+ * file activity (privacy by design), so there is nothing to switch. The
+ * activity feed on the dashboard is a private log kept in this browser only.
+ */
+function PrivacyCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Activity log</CardTitle>
-        <CardDescription>Record actions like uploads, edits and downloads</CardDescription>
+        <CardTitle>Privacy</CardTitle>
+        <CardDescription>How your files and activity are handled</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            {enabled
-              ? "Logging is on — your recent activity shows on the dashboard."
-              : "Logging is off — new actions won't be recorded."}
-          </p>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={enabled}
-            aria-label="Toggle activity logging"
-            disabled={saving}
-            onClick={() => void toggle()}
-            className={cn(
-              "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
-              enabled ? "bg-primary" : "bg-muted",
-              saving && "opacity-60",
-            )}
-          >
-            <span
-              className={cn(
-                "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform",
-                enabled ? "translate-x-5" : "translate-x-0.5",
-              )}
-            />
-          </button>
-        </div>
+      <CardContent className="space-y-2 text-sm text-muted-foreground">
+        <p>
+          Your files are stored only in this browser and are never kept on our servers. Tools
+          process documents for a moment and delete every server copy immediately.
+        </p>
+        <p>
+          The activity feed on your dashboard is recorded locally on this device — the server
+          keeps no log of your files or actions.
+        </p>
       </CardContent>
     </Card>
   );

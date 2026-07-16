@@ -51,3 +51,39 @@ jobs:
 
       - name: Build web app
         run: npm run build
+
+  # Browser smoke test: guest → upload → viewer → library, in real Chromium.
+  # Advisory while it proves itself stable (a red here does not block deploys);
+  # promote to a hard gate by removing continue-on-error once trusted.
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    continue-on-error: true
+    env:
+      DATABASE_URL: "file:./e2e.db"
+      JWT_ACCESS_SECRET: "e2e-ci-access-secret-0123456789-0123456789-0123456789"
+      JWT_REFRESH_SECRET: "e2e-ci-refresh-secret-0123456789-0123456789-0123456789"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund
+
+      - name: Generate Prisma client & dev database
+        run: |
+          npm run db:generate -w @pdfforge/api
+          npm run db:setup -w @pdfforge/api
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke tests
+        run: npm run test:e2e

@@ -28,6 +28,11 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/apps/web ./apps/web
 
+# Run as the unprivileged 'node' user (F2, Audit #3). Next.js writes its
+# runtime cache under .next, so that dir must belong to the runtime user.
+RUN chown -R node:node /app/apps/web/.next
+USER node
+
 # Render (and other hosts) inject $PORT; fall back to 3000 locally.
 EXPOSE 3000
 CMD ["sh", "-c", "cd apps/web && npx next start -p ${PORT:-3000}"]

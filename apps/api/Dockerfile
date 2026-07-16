@@ -30,6 +30,12 @@ RUN node scripts/use-postgres.mjs \
 ENV NODE_ENV=production
 EXPOSE 4000
 
+# Run as the unprivileged 'node' user (F2, Audit #3): limits blast radius if
+# the app is ever compromised. The only writable paths the API needs are the
+# upload temp dir (under /tmp, world-writable) and the node user's own HOME
+# (npm cache for the npx launcher).
+USER node
+
 # Sync the schema, then start. Without --accept-data-loss, a schema change that
 # would DROP data aborts the deploy (protecting the data) instead of silently
 # applying it; safe additive changes still apply. tsx executes TypeScript directly.
