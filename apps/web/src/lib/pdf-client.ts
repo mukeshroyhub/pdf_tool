@@ -118,8 +118,14 @@ export function renderPage(
   };
 }
 
-/** Backend/standard-font family the overlay text element supports. */
-export type EditorFont = "helvetica" | "helvetica-bold" | "times" | "courier";
+/** Backend font family the overlay text element supports. */
+export type EditorFont =
+  | "helvetica"
+  | "helvetica-bold"
+  | "times"
+  | "courier"
+  | "inter"
+  | "inter-bold";
 
 /** A single run of existing text in a page, positioned for the editor overlay. */
 export interface PageTextLine {
@@ -158,6 +164,14 @@ function matchFont(fontName: string, fontFamily: string, data: LoadedFontData | 
   if (isSerif) return "times";
   const isBold =
     data?.bold === true || data?.black === true || /bold|black|heavy|semibold|\bsb\b/.test(n);
+  // Modern geometric/grotesque brand fonts (Uber Move, Circular, Gotham, …)
+  // look much closer to Inter than to Helvetica — the server embeds Inter for
+  // these (falling back to Helvetica when it isn't installed).
+  const isGeometric =
+    /uber|move|circular|gotham|proxima|avenir|futura|century gothic|montserrat|poppins|nunito|quicksand|dm sans|product sans|graphik|sofia|greycliff|inter|sf pro|san francisco|roboto|lato|geist/.test(
+      n,
+    );
+  if (isGeometric) return isBold ? "inter-bold" : "inter";
   return isBold ? "helvetica-bold" : "helvetica";
 }
 

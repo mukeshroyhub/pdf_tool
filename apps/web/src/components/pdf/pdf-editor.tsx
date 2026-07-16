@@ -701,7 +701,7 @@ export function PdfEditor({
   );
 }
 
-/** Maps a text element's standard font to a matching CSS family + weight. */
+/** Maps a text element's font to a matching CSS family + weight. */
 function fontCss(font: string): { fontFamily: string; fontWeight: number } {
   switch (font) {
     case "times":
@@ -710,6 +710,12 @@ function fontCss(font: string): { fontFamily: string; fontWeight: number } {
       return { fontFamily: '"Courier New", Courier, monospace', fontWeight: 400 };
     case "helvetica-bold":
       return { fontFamily: "Helvetica, Arial, sans-serif", fontWeight: 700 };
+    // Inter is loaded app-wide via next/font (--font-inter); browsers without
+    // it fall back to Helvetica, mirroring the server's fallback.
+    case "inter":
+      return { fontFamily: "var(--font-inter), Inter, Helvetica, sans-serif", fontWeight: 400 };
+    case "inter-bold":
+      return { fontFamily: "var(--font-inter), Inter, Helvetica, sans-serif", fontWeight: 700 };
     default:
       return { fontFamily: "Helvetica, Arial, sans-serif", fontWeight: 400 };
   }

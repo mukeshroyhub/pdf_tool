@@ -7,6 +7,8 @@ import {
   rgb,
   StandardFonts,
 } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import { getCustomFontBytes } from "../lib/fonts";
 import type {
   AnnotateInput,
   EditElement,
@@ -36,6 +38,42 @@ const FONT_MAP: Record<string, StandardFonts> = {
   times: StandardFonts.TimesRoman,
   courier: StandardFonts.Courier,
 };
+
+/** Custom fonts embedded from font files; value = fallback standard font. */
+const CUSTOM_FONT_FALLBACK: Record<string, StandardFonts> = {
+  inter: StandardFonts.Helvetica,
+  "inter-bold": StandardFonts.HelveticaBold,
+};
+
+/**
+ * Resolves an element's font: embeds Inter (via fontkit) when requested and
+ * installed, otherwise the mapped standard font. Cached per document.
+ */
+async function resolveFont(
+  doc: PDFDocument,
+  name: string,
+  fonts: Map<string, PDFFont>,
+): Promise<PDFFont> {
+  const cached = fonts.get(name);
+  if (cached) return cached;
+
+  let font: PDFFont | null = null;
+  if (name in CUSTOM_FONT_FALLBACK) {
+    const bytes = await getCustomFontBytes(name);
+    if (bytes) {
+      doc.registerFontkit(fontkit);
+      // subset: only the used glyphs are embedded, keeping output small.
+      font = await doc.embedFont(bytes, { subset: true });
+    }
+  }
+  if (!font) {
+    font = await doc.embedFont(
+      FONT_MAP[name] ?? CUSTOM_FONT_FALLBACK[name] ?? StandardFonts.Helvetica,
+    );
+  }
+  fonts.set(name, font);
+  return font;
+}
 
 const toRgb = (c: RgbColor) => rgb(c.r, c.g, c.b);
 
@@ -85,11 +123,7 @@ async function drawElement(
 
   switch (element.type) {
     case "text": {
-      let font = fonts.get(element.font);
-      if (!font) {
-        font = await doc.embedFont(FONT_MAP[element.font] ?? StandardFonts.Helvetica);
-        fonts.set(element.font, font);
-      }
+      const font = await resolveFont(doc, element.font, fonts);
       // Draw each line; y refers to the TOP of the text block.
       const lines = element.text.split("\n");
       const lineHeight = element.fontSize * 1.25;
