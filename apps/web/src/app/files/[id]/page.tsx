@@ -4,7 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import { ArrowLeft, ClipboardList, Download, LayoutGrid, Loader2, PencilRuler, ScanEye, ShieldAlert } from "lucide-react";
+import { ArrowLeft, ChevronDown, ClipboardList, Download, LayoutGrid, Loader2, PencilRuler, ScanEye, ShieldAlert, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import { downloadFile } from "@/lib/local-store";
@@ -44,6 +44,7 @@ function FileContent({ id }: { id: string }) {
   const requestedMode = useSearchParams().get("mode");
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [docError, setDocError] = useState<string | null>(null);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [mode, setMode] = useState<Mode>(
     MODES.includes(requestedMode as Mode) ? (requestedMode as Mode) : "view",
   );
@@ -138,12 +139,43 @@ function FileContent({ id }: { id: string }) {
               ))}
             </div>
           ) : null}
-          <ConvertMenu file={file} />
-          {isPdf ? <SignatureDialog fileId={file.id} doc={doc} /> : null}
-          {isPdf ? <RemoveTextDialog fileId={file.id} /> : null}
-          {isPdf ? <PageNumbersDialog fileId={file.id} /> : null}
-          {isPdf ? <ProtectDialog fileId={file.id} /> : null}
-          {isPdf ? <CompressDialog fileId={file.id} /> : null}
+          {/* Secondary actions live in a collapsible Tools panel to keep the
+              toolbar readable (11 controls in a row overwhelmed small screens).
+              The panel is hidden with CSS rather than unmounted so an open
+              dialog inside it survives the panel closing. */}
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              aria-expanded={toolsOpen}
+              onClick={() => setToolsOpen((o) => !o)}
+            >
+              <Wrench /> Tools <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+            </Button>
+            {toolsOpen ? (
+              <button
+                type="button"
+                aria-label="Close tools menu"
+                className="fixed inset-0 z-40 cursor-default"
+                onClick={() => setToolsOpen(false)}
+              />
+            ) : null}
+            <div
+              onClickCapture={() => setToolsOpen(false)}
+              className={cn(
+                "absolute right-0 top-full z-50 mt-2 w-56 flex-col gap-1 rounded-lg border bg-popover p-2 shadow-md",
+                "[&>button]:w-full [&>button]:justify-start",
+                toolsOpen ? "flex" : "hidden",
+              )}
+            >
+              <ConvertMenu file={file} />
+              {isPdf ? <SignatureDialog fileId={file.id} doc={doc} /> : null}
+              {isPdf ? <RemoveTextDialog fileId={file.id} /> : null}
+              {isPdf ? <PageNumbersDialog fileId={file.id} /> : null}
+              {isPdf ? <ProtectDialog fileId={file.id} /> : null}
+              {isPdf ? <CompressDialog fileId={file.id} /> : null}
+            </div>
+          </div>
           <Button
             variant="outline"
             size="sm"
