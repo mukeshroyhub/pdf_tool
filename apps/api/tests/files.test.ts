@@ -146,11 +146,13 @@ describe("GET /api/files/:id/download", () => {
 });
 
 describe("activity timeline", () => {
-  it("records upload/rename/favorite/download in order", async () => {
+  it("records nothing server-side (privacy by design)", async () => {
+    // Files are browser-local; the server processes bytes transiently and must
+    // not keep any record of them — including names in an activity log. The
+    // web app keeps its own private activity log in IndexedDB instead.
     const res = await request(app).get("/api/activity").set(auth());
     assert.equal(res.status, 200);
-    const actions = res.body.activities.map((a: { action: string }) => a.action);
-    assert.deepEqual(actions.slice(0, 4), ["DOWNLOAD", "FAVORITE", "RENAME", "UPLOAD"]);
+    assert.equal(res.body.activities.length, 0);
   });
 });
 

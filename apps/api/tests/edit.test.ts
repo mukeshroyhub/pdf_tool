@@ -153,10 +153,11 @@ describe("POST /api/pdf/:id/watermark", () => {
 });
 
 describe("activity", () => {
-  it("logs EDIT and WATERMARK", async () => {
+  it("records nothing server-side (privacy by design)", async () => {
+    // Edit/watermark operations must leave no server-side trace; the browser
+    // keeps a private activity log locally instead.
     const res = await request(app).get("/api/activity?limit=50").set(auth());
-    const actions = new Set(res.body.activities.map((a: { action: string }) => a.action));
-    assert.ok(actions.has("EDIT"));
-    assert.ok(actions.has("WATERMARK"));
+    assert.equal(res.status, 200);
+    assert.equal(res.body.activities.length, 0);
   });
 });

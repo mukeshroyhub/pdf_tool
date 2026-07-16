@@ -251,11 +251,11 @@ describe("POST /api/pdf/:id/protect + /unlock", () => {
 });
 
 describe("activity", () => {
-  it("logs MERGE/SPLIT/ORGANIZE/REPLACE_PAGES", async () => {
+  it("records nothing server-side (privacy by design)", async () => {
+    // PDF operations must leave no server-side trace; the browser keeps a
+    // private activity log locally instead.
     const res = await request(app).get("/api/activity?limit=50").set(auth());
-    const actions = new Set(res.body.activities.map((a: { action: string }) => a.action));
-    for (const expected of ["MERGE", "SPLIT", "ORGANIZE", "REPLACE_PAGES"]) {
-      assert.ok(actions.has(expected), `expected ${expected} in activity log`);
-    }
+    assert.equal(res.status, 200);
+    assert.equal(res.body.activities.length, 0);
   });
 });
