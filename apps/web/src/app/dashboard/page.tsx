@@ -46,6 +46,9 @@ function DashboardContent() {
 
       <RetentionBanner />
 
+      {/* Upload is the primary action — it leads, full-width, above the tools. */}
+      <UploadDropzone />
+
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground">Quick tools</h2>
         <ToolGrid firstPdfId={firstPdf?.id ?? null} />
@@ -53,8 +56,6 @@ function DashboardContent() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <UploadDropzone />
-
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex gap-1 rounded-lg bg-muted p-1">

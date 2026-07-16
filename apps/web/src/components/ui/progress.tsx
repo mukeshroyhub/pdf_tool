@@ -10,7 +10,9 @@ const Progress = React.forwardRef<
 >(({ className, value, ...props }, ref) => (
   <ProgressPrimitive.Root
     ref={ref}
-    className={cn("relative h-2 w-full overflow-hidden rounded-full bg-primary/20", className)}
+    // Neutral track: a primary-tinted track reads as "full" when the value is
+    // near 0 (e.g. the storage meter), so the unfilled portion must be muted.
+    className={cn("relative h-2 w-full overflow-hidden rounded-full bg-muted", className)}
     {...props}
   >
     <ProgressPrimitive.Indicator

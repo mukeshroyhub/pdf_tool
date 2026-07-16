@@ -62,7 +62,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden text-sm text-muted-foreground md:inline">{user.email}</span>
+            {/* Guest accounts get a machine-generated email — show a clean badge
+                instead. Real emails are truncated so long ones can't break the bar. */}
+            {user.email.endsWith("@guest.pdfforge.local") ? (
+              <span className="hidden rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground md:inline">
+                Guest
+              </span>
+            ) : (
+              <span className="hidden max-w-[200px] truncate text-sm text-muted-foreground md:inline">
+                {user.email}
+              </span>
+            )}
             <ThemeToggle />
             <Button
               variant="outline"
