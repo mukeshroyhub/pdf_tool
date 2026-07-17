@@ -46,9 +46,14 @@ const DROPIN_DIRS = [
   "/usr/share/fonts/custom",
 ];
 
+// Prefer .ttf: pdf-lib embeds TrueType-flavored fonts in a form every PDF
+// renderer accepts. CFF-flavored .otf subsets are rejected by pdfium (Edge,
+// Chrome) and poppler, which then substitute a wrong-looking fallback font —
+// verified head-to-head across pdf.js/pdfium/poppler, July 2026. Convert OTFs
+// with fontTools' otf2ttf (cu2qu) before dropping them in.
 const DROPIN_FILES: Record<string, string[]> = {
-  ubermove: ["UberMoveMedium.otf", "UberMoveRegular.otf"],
-  "ubermove-bold": ["UberMoveBold.otf"],
+  ubermove: ["UberMoveMedium.ttf", "UberMoveRegular.ttf", "UberMoveMedium.otf"],
+  "ubermove-bold": ["UberMoveBold.ttf", "UberMoveBold.otf"],
 };
 
 
