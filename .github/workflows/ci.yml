@@ -81,6 +81,9 @@ jobs:
           pnpm --filter @pdfforge/api db:generate
           pnpm --filter @pdfforge/api db:setup
 
+      - name: Install qpdf (powers the protect/unlock journey)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qpdf
+
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 

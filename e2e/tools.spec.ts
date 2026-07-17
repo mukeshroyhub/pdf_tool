@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { minimalPdf } from "./fixtures";
 
 /**
  * Tool-journey tests: page numbers, password protect + unlock, and merge —
@@ -8,17 +9,6 @@ import { expect, test, type Page } from "@playwright/test";
  * Selectors target user-visible labels and toasts, so these tests double as
  * a contract that the UI copy users rely on doesn't silently change.
  */
-
-/** A minimal but valid one-page PDF, generated in-memory. */
-function minimalPdf(): Buffer {
-  const src = `%PDF-1.4
-1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
-2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
-3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << >> >> endobj
-trailer << /Root 1 0 R >>
-%%EOF`;
-  return Buffer.from(src, "ascii");
-}
 
 /** Starts a fresh guest session and lands on the dashboard. */
 async function guestDashboard(page: Page): Promise<void> {

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { minimalPdf } from "./fixtures";
 
 /**
  * Core journey smoke test: guest session → upload a PDF → the browser-local
@@ -6,17 +7,6 @@ import { expect, test } from "@playwright/test";
  * tests can't reach: the IndexedDB library, the upload dropzone, client-side
  * page counting and the viewer round-trip.
  */
-
-/** A minimal but valid one-page PDF, built in-memory (no fixture file needed). */
-function minimalPdf(): Buffer {
-  const src = `%PDF-1.4
-1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
-2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
-3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << >> >> endobj
-trailer << /Root 1 0 R >>
-%%EOF`;
-  return Buffer.from(src, "ascii");
-}
 
 test("guest can upload a PDF into the browser library and open it", async ({ page }) => {
   await page.goto("/login");
