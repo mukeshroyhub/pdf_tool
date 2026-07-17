@@ -8,7 +8,7 @@ import {
   StandardFonts,
 } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import { getCustomFontBytes } from "../lib/fonts";
+import { getCustomFontBytes, isDropinFont } from "../lib/fonts";
 import type {
   AnnotateInput,
   EditElement,
@@ -78,8 +78,10 @@ async function resolveFont(
     const bytes = await getCustomFontBytes(name, { display });
     if (bytes) {
       doc.registerFontkit(fontkit);
-      // subset: only the used glyphs are embedded, keeping output small.
-      font = await doc.embedFont(bytes, { subset: true });
+      // Inter is subset (only used glyphs) to keep output small. Drop-in fonts
+      // embed whole: subsetting rewrites width tables and some OTFs then space
+      // inconsistently across PDF renderers (pdf.js fine, Edge/Acrobat gappy).
+      font = await doc.embedFont(bytes, { subset: !isDropinFont(name) });
     }
   }
   if (!font) {
