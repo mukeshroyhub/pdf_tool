@@ -21,13 +21,13 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "npm run dev:api",
+      command: "pnpm dev:api",
       url: "http://localhost:4000/api/health",
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
     {
-      command: "npm run dev:web",
+      command: "pnpm dev:web",
       url: "http://localhost:3000/login",
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,

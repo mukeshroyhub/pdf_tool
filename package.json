@@ -2,20 +2,17 @@
   "name": "pdfforge",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "packageManager": "pnpm@9.15.4",
   "scripts": {
-    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w @pdfforge/api\" \"npm run dev -w @pdfforge/web\"",
-    "dev:api": "npm run dev -w @pdfforge/api",
-    "dev:web": "npm run dev -w @pdfforge/web",
-    "build": "npm run build -w @pdfforge/web",
-    "lint": "npm run lint --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "dev": "concurrently -n api,web -c blue,green \"pnpm --filter @pdfforge/api dev\" \"pnpm --filter @pdfforge/web dev\"",
+    "dev:api": "pnpm --filter @pdfforge/api dev",
+    "dev:web": "pnpm --filter @pdfforge/web dev",
+    "build": "pnpm --filter @pdfforge/web build",
+    "lint": "pnpm -r --if-present run lint",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test",
     "test:e2e": "playwright test",
-    "db:migrate": "npm run db:setup -w @pdfforge/api",
+    "db:migrate": "pnpm --filter @pdfforge/api db:setup",
     "setup": "node scripts/setup-local.mjs"
   },
   "devDependencies": {

@@ -1,7 +1,12 @@
 name: CI
 
-# Runs on every push and pull request to main: lint, typecheck, tests, build.
-# A red check here means the change should not be deployed.
+# Runs on every push and pull request to main: lint, typecheck, tests, build,
+# and a real-browser smoke test. A red check here means do not deploy.
+#
+# Installs use pnpm with --frozen-lockfile: the committed pnpm-lock.yaml is
+# platform-complete (it records Windows AND Linux native binaries, unlike
+# npm's lockfile — npm/cli#4828), so every environment builds the exact same
+# dependency tree. Reproducible builds, no delete-the-lockfile workarounds.
 
 on:
   push:
@@ -23,42 +28,35 @@ jobs:
         with:
           node-version: 22
 
-      # The committed lockfile is generated on Windows and omits Linux-only
-      # native binaries (@napi-rs/canvas, sharp, libsql — npm/cli#4828), so a
-      # lockfile-based install can't load them on Linux. Removing it forces a
-      # fresh resolution for linux-x64, exactly as the Docker images do.
+      - name: Enable pnpm (pinned via packageManager field)
+        run: corepack enable
+
       - name: Install dependencies
-        run: |
-          rm -f package-lock.json
-          npm install --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: npm run db:generate -w @pdfforge/api
+        run: pnpm --filter @pdfforge/api db:generate
 
       - name: Typecheck
-        run: npm run typecheck
+        run: pnpm typecheck
 
       # Lint is advisory: a style or config issue should never block a deploy.
-      # Typecheck, tests, and the build are the hard gates below.
+      # Typecheck, tests, and the build are the hard gates.
       - name: Lint
-        run: npm run lint
+        run: pnpm lint
         continue-on-error: true
 
-      # LibreOffice/Tesseract are not installed here, so the 3 conversion/OCR
-      # tests that depend on them skip automatically (they never hard-fail).
       - name: Test
-        run: npm test
+        run: pnpm test
 
       - name: Build web app
-        run: npm run build
+        run: pnpm build
 
-  # Browser smoke test: guest → upload → viewer → library, in real Chromium.
-  # Advisory while it proves itself stable (a red here does not block deploys);
-  # promote to a hard gate by removing continue-on-error once trusted.
+  # Browser smoke tests: core user journeys in real Chromium. A hard gate
+  # since the suite proved stable: a red here means the product is broken.
   e2e-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    continue-on-error: true
     env:
       DATABASE_URL: "file:./e2e.db"
       JWT_ACCESS_SECRET: "e2e-ci-access-secret-0123456789-0123456789-0123456789"
@@ -72,18 +70,19 @@ jobs:
         with:
           node-version: 22
 
+      - name: Enable pnpm
+        run: corepack enable
+
       - name: Install dependencies
-        run: |
-          rm -f package-lock.json
-          npm install --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client & dev database
         run: |
-          npm run db:generate -w @pdfforge/api
-          npm run db:setup -w @pdfforge/api
+          pnpm --filter @pdfforge/api db:generate
+          pnpm --filter @pdfforge/api db:setup
 
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run smoke tests
-        run: npm run test:e2e
+        run: pnpm test:e2e

@@ -1,12 +1,13 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Windows-generated lockfiles can omit Linux native binaries (npm/cli#4828),
-# so the image resolves dependencies fresh for linux (see api Dockerfile).
-COPY package.json ./
+# Reproducible install via pnpm (see api Dockerfile for the rationale).
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json apps/web/
+COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
-RUN npm install --no-audit --no-fund
+RUN corepack enable \
+ && pnpm install --frozen-lockfile --filter @pdfforge/web... --filter .
 
 COPY tsconfig.base.json ./
 COPY packages/shared/ packages/shared/
@@ -16,7 +17,7 @@ COPY apps/web/ apps/web/
 # Compose sets the default; Render passes its API URL via the API_URL build arg.
 ARG API_URL=http://api:4000
 ENV API_URL=${API_URL}
-RUN cd apps/web && npm run build
+RUN corepack enable && pnpm --filter @pdfforge/web build
 
 FROM node:22-alpine AS runner
 WORKDIR /app

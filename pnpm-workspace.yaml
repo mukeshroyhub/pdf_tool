@@ -1,0 +1,8 @@
+# pnpm workspace definition. pnpm replaces npm here for one root-cause reason:
+# its lockfile records ALL platform variants of native optional dependencies
+# (@napi-rs/canvas, sharp, libsql), so one committed pnpm-lock.yaml works on
+# Windows dev machines AND Linux CI/Docker — ending the delete-the-lockfile
+# workaround (npm/cli#4828) and giving fully reproducible builds.
+packages:
+  - "apps/*"
+  - "packages/*"

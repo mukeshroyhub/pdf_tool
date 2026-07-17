@@ -8,14 +8,18 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends fonts-liberation fonts-inter qpdf \
  && rm -rf /var/lib/apt/lists/*
 
-# Install workspace dependencies with the full monorepo manifest set.
-# NOTE: the committed package-lock.json is generated on Windows and can omit
-# Linux-only native binaries (@napi-rs/canvas, sharp — npm/cli#4828), so the
-# image resolves dependencies fresh for linux-x64.
-COPY package.json ./
+# Reproducible install via pnpm: pnpm-lock.yaml records ALL platform variants
+# of native optional deps (unlike npm's lockfile — npm/cli#4828), so the same
+# committed lockfile serves Windows dev and this Linux image. --frozen-lockfile
+# guarantees the image builds from exactly the pinned dependency tree.
+# All workspace manifests are copied because the lockfile validates every
+# importer; --filter then installs only what the API actually needs.
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
-RUN npm install --no-audit --no-fund
+RUN corepack enable \
+ && pnpm install --frozen-lockfile --filter @pdfforge/api... --filter .
 
 # Copy sources.
 COPY tsconfig.base.json ./
