@@ -24,6 +24,11 @@ services:
       # Put .otf/.ttf files in ./fonts-custom on the box; the editor uses them
       # for exact-match text replacement. Empty dir = graceful fallback.
       - ./fonts-custom:/app/apps/api/fonts:ro
+      # Staging area for the local storage driver (STORAGE_DRIVER=local).
+      # Since the privacy architecture, server-side files are sub-minute
+      # staging temporaries only — local disk beats cross-region S3 by
+      # several round trips per save. Purged by the 60-min retention job.
+      - ./staging:/app/apps/api/uploads
 
   web:
     build:
