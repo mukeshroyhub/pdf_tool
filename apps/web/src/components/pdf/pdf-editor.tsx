@@ -320,6 +320,7 @@ export function PdfEditor({
     text
       .replace(/\s+([,.;:!?%)\]])/g, "$1") // no space before punctuation
       .replace(/([([])\s+/g, "$1") // no space after opening brackets
+      .replace(/(\d)\s*:\s*(\d)/g, "$1:$2") // times: "08: 42" → "08:42"
       .replace(/ {2,}/g, " ") // collapse runs of spaces
       .trim();
 
@@ -1049,8 +1050,12 @@ function SaveEditsDialog({
   const router = useRouter();
   const { refreshUser } = useAuth();
   const [name, setName] = useState(`${fileName.replace(/\.pdf$/i, "")}-edited.pdf`);
+  // Which button kicked off the save, so its own spinner shows (both buttons
+  // share the mutation, and a spinner on the wrong button confuses users).
+  const [saving, setSaving] = useState<"new" | "replace" | null>(null);
 
   const save = async (mode: "new" | "replace") => {
+    setSaving(mode);
     try {
       const payload = elements.map(({ key: _key, ...el }) => el);
       const result = await annotate.mutateAsync({
@@ -1065,6 +1070,8 @@ function SaveEditsDialog({
       if (mode === "new") router.push(`/files/${result.file.id}`);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Save failed");
+    } finally {
+      setSaving(null);
     }
   };
 
@@ -1079,11 +1086,12 @@ function SaveEditsDialog({
           <Input id="save-name" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <DialogFooter>
-          <Button variant="outline" disabled={annotate.isPending} onClick={() => void save("replace")}>
+          <Button variant="outline" disabled={saving !== null} onClick={() => void save("replace")}>
+            {saving === "replace" ? <Loader2 className="animate-spin" /> : null}
             Overwrite original
           </Button>
-          <Button disabled={annotate.isPending || !name.trim()} onClick={() => void save("new")}>
-            {annotate.isPending ? <Loader2 className="animate-spin" /> : null}
+          <Button disabled={saving !== null || !name.trim()} onClick={() => void save("new")}>
+            {saving === "new" ? <Loader2 className="animate-spin" /> : null}
             Save as copy
           </Button>
         </DialogFooter>
