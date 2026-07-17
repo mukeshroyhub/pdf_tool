@@ -8,7 +8,7 @@ import {
   StandardFonts,
 } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import { getCustomFontBytes, isDropinFont } from "../lib/fonts";
+import { getCustomFontBytes } from "../lib/fonts";
 import type {
   AnnotateInput,
   EditElement,
@@ -78,10 +78,13 @@ async function resolveFont(
     const bytes = await getCustomFontBytes(name, { display });
     if (bytes) {
       doc.registerFontkit(fontkit);
-      // Inter is subset (only used glyphs) to keep output small. Drop-in fonts
-      // embed whole: subsetting rewrites width tables and some OTFs then space
-      // inconsistently across PDF renderers (pdf.js fine, Edge/Acrobat gappy).
-      font = await doc.embedFont(bytes, { subset: !isDropinFont(name) });
+      // Always subset. Tested head-to-head (July 2026): subset embeds render
+      // with correct spacing and re-extract cleanly in pdf.js and Edge;
+      // whole-file embeds of OTF/CFF produce an invalid font object that
+      // renderers reject — causing substituted metrics ("phantom spaces") and
+      // garbled text extraction. Known limitation: poppler-based viewers
+      // (Evince) substitute a lookalike, but spacing stays correct via /Widths.
+      font = await doc.embedFont(bytes, { subset: true });
     }
   }
   if (!font) {

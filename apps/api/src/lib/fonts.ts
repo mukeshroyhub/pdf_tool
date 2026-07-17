@@ -51,15 +51,6 @@ const DROPIN_FILES: Record<string, string[]> = {
   "ubermove-bold": ["UberMoveBold.otf"],
 };
 
-/**
- * Drop-in fonts are embedded WITHOUT subsetting. Subsetting rewrites the
- * font's width tables, and some OTFs come out with metadata that different
- * PDF renderers space differently (fine in pdf.js, gappy in Edge/Acrobat).
- * These files are ~56 KB, so whole-font embedding costs almost nothing.
- */
-export function isDropinFont(name: string): boolean {
-  return name in DROPIN_FILES;
-}
 
 const cache = new Map<string, Buffer | null>();
 
