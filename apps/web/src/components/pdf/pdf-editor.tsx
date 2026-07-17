@@ -318,6 +318,10 @@ export function PdfEditor({
    */
   const cleanExtractedText = (text: string): string =>
     text
+      // Broken ToUnicode maps garble punctuation into random non-ASCII chars
+      // (a colon extracted as "苷"). Between two digits that char was almost
+      // certainly a colon (times like 10:42) — repair it.
+      .replace(/(\d)[^\x00-\x7F](\d)/g, "$1:$2")
       .replace(/\s+([,.;:!?%)\]])/g, "$1") // no space before punctuation
       .replace(/([([])\s+/g, "$1") // no space after opening brackets
       .replace(/(\d)\s*:\s*(\d)/g, "$1:$2") // times: "08: 42" → "08:42"

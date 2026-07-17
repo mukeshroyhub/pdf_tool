@@ -142,8 +142,17 @@ async function drawElement(
   switch (element.type) {
     case "text": {
       const font = await resolveFont(doc, element.font, element.fontSize, fonts);
+      // Drop characters the chosen font cannot draw. Source PDFs with broken
+      // ToUnicode maps make pdf.js extract garbage codepoints (e.g. a colon
+      // read as a CJK character); drawing those renders an invisible .notdef
+      // blank — the "phantom space" — or throws outright on standard fonts.
+      const charSet = new Set(font.getCharacterSet());
+      const drawable = (s: string) =>
+        Array.from(s)
+          .filter((c) => charSet.has(c.codePointAt(0) ?? -1))
+          .join("");
       // Draw each line; y refers to the TOP of the text block.
-      const lines = element.text.split("\n");
+      const lines = element.text.split("\n").map(drawable);
       const lineHeight = element.fontSize * 1.25;
       lines.forEach((line, i) => {
         page.drawText(line, {
