@@ -81,8 +81,31 @@ DuckDNS instead.)
 - UptimeRobot should already show recovery; check the alert history.
 - Note the drill/recovery time below.
 
+## Current production (post-migration)
+
+- Region: **ap-south-1 (Mumbai)** · Instance: `pdf-tool-mumbai` · Elastic IP: **15.206.57.5**
+- Update scp targets accordingly: `ubuntu@15.206.57.5`
+
+## Lessons from the first rebuild (17 Jul 2026 — Mumbai migration)
+
+1. **Caddyfile placeholder:** the repo's Caddyfile used to carry `pdftool.example.com`;
+   a fresh clone requested certificates for the placeholder and TLS failed until
+   `sed`-fixed. The real domain is now committed — but check `head Caddyfile`
+   during any rebuild.
+2. **Use `nohup` for the build.** EC2 Instance Connect browser sessions freeze
+   silently during long operations and kill foreground processes. Always:
+   `nohup docker compose -f docker-compose.oracle.yml up -d --build > ~/build.log 2>&1 &`
+   then poll `tail ~/build.log` from any session.
+3. **Key pairs and Elastic IPs are region-bound.** A new region means a new key
+   pair (or none — Instance Connect works without) and a new EIP + DuckDNS update.
+4. **Server-to-server file transfer** (when no PC key is at hand): generate a key
+   on the old box, append its .pub to the new box's `~/.ssh/authorized_keys`, then
+   scp old→new. Works because the new box allows SSH from anywhere.
+5. **Fresh Ubuntu 26.04 AMIs** come with the full 30 GB root already usable — no
+   growpart needed (unlike the original 8 GB launch).
+
 ## Drill log
 
 | Date | Type | Time taken | Notes |
 |---|---|---|---|
-| _(fill after first drill)_ | Drill | | |
+| 17 Jul 2026 | Real migration (Stockholm → Mumbai), doubled as first drill | ~55 min including obstacles | Caddyfile placeholder + frozen-session build kill cost ~15 min; clean rebuild following the updated runbook should land ≤30 min |

@@ -2,7 +2,7 @@
 # like pdftool-mukesh.duckdns.org). Caddy fetches and renews the HTTPS
 # certificate automatically — no manual certbot needed.
 
-pdftool.example.com {
+pdftool4u.duckdns.org {
 	encode gzip
 
 	# API calls go straight to the Express service.
