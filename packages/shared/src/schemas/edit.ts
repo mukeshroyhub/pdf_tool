@@ -48,6 +48,7 @@ export const textElementSchema = z.object({
       // Drop-in licensed fonts (server-side files, not in git). Fall back to
       // Inter/Helvetica when the files aren't installed on the host.
       "ubermove",
+      "ubermove-medium",
       "ubermove-bold",
     ])
     .default("helvetica"),

@@ -134,6 +134,7 @@ export type EditorFont =
   | "inter-extrabold"
   | "inter-black"
   | "ubermove"
+  | "ubermove-medium"
   | "ubermove-bold";
 
 /** A single run of existing text in a page, positioned for the editor overlay. */
@@ -185,7 +186,9 @@ function matchFont(fontName: string, fontFamily: string, data: LoadedFontData | 
   // Uber's brand font is replaced with the genuine typeface (Medium serves as
   // the regular weight; falls back to Inter-class if the files are missing).
   if (/uber\s?move|ubermove/.test(n)) {
-    return isBold || data?.black === true ? "ubermove-bold" : "ubermove";
+    if (isBold || data?.black === true) return "ubermove-bold";
+    if (/medium/.test(n)) return "ubermove-medium";
+    return "ubermove";
   }
 
   // Modern geometric/grotesque brand fonts (Circular, Gotham, Futura, …)

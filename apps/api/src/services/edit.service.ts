@@ -51,6 +51,7 @@ const CUSTOM_FONT_FALLBACK: Record<string, StandardFonts> = {
   "inter-extrabold": StandardFonts.HelveticaBold,
   "inter-black": StandardFonts.HelveticaBold,
   ubermove: StandardFonts.Helvetica,
+  "ubermove-medium": StandardFonts.Helvetica,
   "ubermove-bold": StandardFonts.HelveticaBold,
 };
 

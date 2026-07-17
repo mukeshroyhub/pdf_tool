@@ -52,8 +52,16 @@ const DROPIN_DIRS = [
 // verified head-to-head across pdf.js/pdfium/poppler, July 2026. Convert OTFs
 // with fontTools' otf2ttf (cu2qu) before dropping them in.
 const DROPIN_FILES: Record<string, string[]> = {
-  ubermove: ["UberMoveMedium.ttf", "UberMoveRegular.ttf", "UberMoveMedium.otf"],
-  "ubermove-bold": ["UberMoveBold.ttf", "UberMoveBold.otf"],
+  // Regular text weight (receipts set body/timestamps in UberMoveText-Regular).
+  // Falls back to Medium until a Regular file is dropped in.
+  ubermove: [
+    "UberMoveTextRegular.ttf",
+    "UberMoveRegular.ttf",
+    "UberMoveMedium.ttf",
+    "UberMoveMedium.otf",
+  ],
+  "ubermove-medium": ["UberMoveTextMedium.ttf", "UberMoveMedium.ttf", "UberMoveMedium.otf"],
+  "ubermove-bold": ["UberMoveBold.ttf", "UberMoveTextBold.ttf", "UberMoveBold.otf"],
 };
 
 

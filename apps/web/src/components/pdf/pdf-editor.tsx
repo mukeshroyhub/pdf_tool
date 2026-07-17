@@ -784,6 +784,8 @@ function fontCss(font: string): {
     // browsers), so the on-screen preview approximates with Inter; the baked
     // PDF uses the genuine typeface.
     case "ubermove":
+      return { fontFamily: inter, fontWeight: 400 };
+    case "ubermove-medium":
       return { fontFamily: inter, fontWeight: 500 };
     case "ubermove-bold":
       return { fontFamily: inter, fontWeight: 700 };
