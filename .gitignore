@@ -1,5 +1,9 @@
 node_modules/
 .next/
+# Drop-in licensed fonts: server-side assets only, never committed (the files
+# are proprietary — they go onto the host by hand, not through the repo).
+fonts-custom/
+apps/api/fonts/
 dist/
 *.tsbuildinfo
 .env

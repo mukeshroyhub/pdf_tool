@@ -311,6 +311,18 @@ export function PdfEditor({
     };
   };
 
+  /**
+   * pdf.js text extraction sometimes turns kerning gaps into literal spaces
+   * ("rid ing", "text ,"). Clean the obvious artifacts so the pre-filled edit
+   * text starts from something sane; the user can still edit freely.
+   */
+  const cleanExtractedText = (text: string): string =>
+    text
+      .replace(/\s+([,.;:!?%)\]])/g, "$1") // no space before punctuation
+      .replace(/([([])\s+/g, "$1") // no space after opening brackets
+      .replace(/ {2,}/g, " ") // collapse runs of spaces
+      .trim();
+
   const editExistingText = (
     page: number,
     line: PageTextLine,
@@ -333,6 +345,7 @@ export function PdfEditor({
       w: line.w + padX * 2,
       h: topCover + botCover,
     };
+    const cleanedText = cleanExtractedText(line.text);
     const textKey = (nextKey += 1);
     const textEl: EditorElement = {
       key: textKey,
@@ -341,7 +354,7 @@ export function PdfEditor({
       x: line.x,
       // Placed so the rendered baseline lands on the original's baseline.
       y: baseline - size,
-      text: line.text,
+      text: cleanedText,
       // Match the original run's exact size, closest font family, and color.
       // Prefer the pixel-sampled color (ground truth from the rendered page);
       // fall back to the color recovered from the PDF's drawing commands.
@@ -352,7 +365,7 @@ export function PdfEditor({
     commit((prev) => [...prev, whiteout, textEl]);
     setSelectedKey(textKey);
     setTool("select");
-    setTextDialog({ page, x: line.x, y: line.y, editKey: textKey, initial: line.text });
+    setTextDialog({ page, x: line.x, y: line.y, editKey: textKey, initial: cleanedText });
   };
 
   const onPointerDown = (page: number) => (e: React.PointerEvent<HTMLDivElement>) => {
@@ -762,6 +775,13 @@ function fontCss(font: string): {
       return { fontFamily: inter, fontWeight: 800 };
     case "inter-black":
       return { fontFamily: inter, fontWeight: 900 };
+    // Drop-in fonts are server-side only (licensed files are never served to
+    // browsers), so the on-screen preview approximates with Inter; the baked
+    // PDF uses the genuine typeface.
+    case "ubermove":
+      return { fontFamily: inter, fontWeight: 500 };
+    case "ubermove-bold":
+      return { fontFamily: inter, fontWeight: 700 };
     default:
       return { fontFamily: sans, fontWeight: 400 };
   }

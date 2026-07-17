@@ -132,7 +132,9 @@ export type EditorFont =
   | "inter-semibold"
   | "inter-bold"
   | "inter-extrabold"
-  | "inter-black";
+  | "inter-black"
+  | "ubermove"
+  | "ubermove-bold";
 
 /** A single run of existing text in a page, positioned for the editor overlay. */
 export interface PageTextLine {
@@ -179,7 +181,14 @@ function matchFont(fontName: string, fontFamily: string, data: LoadedFontData | 
     return "times";
   }
 
-  // Modern geometric/grotesque brand fonts (Uber Move, Circular, Gotham, …)
+  // Exact match first: the server has drop-in Uber Move files, so text set in
+  // Uber's brand font is replaced with the genuine typeface (Medium serves as
+  // the regular weight; falls back to Inter-class if the files are missing).
+  if (/uber\s?move|ubermove/.test(n)) {
+    return isBold || data?.black === true ? "ubermove-bold" : "ubermove";
+  }
+
+  // Modern geometric/grotesque brand fonts (Circular, Gotham, Futura, …)
   // look much closer to Inter than to Helvetica — the server embeds Inter for
   // these (falling back to Helvetica when it isn't installed). Weight is kept
   // granular: a Black headline replaced with plain Bold still reads as wrong.

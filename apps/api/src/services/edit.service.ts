@@ -50,6 +50,8 @@ const CUSTOM_FONT_FALLBACK: Record<string, StandardFonts> = {
   "inter-bold": StandardFonts.HelveticaBold,
   "inter-extrabold": StandardFonts.HelveticaBold,
   "inter-black": StandardFonts.HelveticaBold,
+  ubermove: StandardFonts.Helvetica,
+  "ubermove-bold": StandardFonts.HelveticaBold,
 };
 
 /** At and above this size, prefer Inter's Display optical variant (headlines). */

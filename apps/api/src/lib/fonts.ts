@@ -19,6 +19,8 @@ import { readFile } from "node:fs/promises";
  * feature degrades gracefully instead of erroring.
  */
 
+import path from "node:path";
+
 const INTER_DIRS = ["/usr/share/fonts/opentype/inter", "/usr/share/fonts/truetype/inter"];
 
 /** Weight file-name stem per supported font key. */
@@ -31,6 +33,24 @@ const INTER_STEMS: Record<string, string> = {
   "inter-black": "Black",
 };
 
+/**
+ * Drop-in licensed fonts (NOT in git — see fonts-custom/ note in .gitignore).
+ * Searched in: apps/api/fonts (Docker volume mount target), ../../fonts-custom
+ * (repo root, local dev), and /usr/share/fonts/custom. Owners place font files
+ * they are licensed to use here; missing files fall back gracefully, so the
+ * feature is invisible on machines without them.
+ */
+const DROPIN_DIRS = [
+  path.resolve(process.cwd(), "fonts"),
+  path.resolve(process.cwd(), "../../fonts-custom"),
+  "/usr/share/fonts/custom",
+];
+
+const DROPIN_FILES: Record<string, string[]> = {
+  ubermove: ["UberMoveMedium.otf", "UberMoveRegular.otf"],
+  "ubermove-bold": ["UberMoveBold.otf"],
+};
+
 const cache = new Map<string, Buffer | null>();
 
 /**
@@ -41,18 +61,19 @@ export async function getCustomFontBytes(
   name: string,
   opts: { display?: boolean } = {},
 ): Promise<Buffer | null> {
-  const stem = INTER_STEMS[name];
-  if (!stem) return null;
   const cacheKey = `${name}${opts.display ? ":display" : ""}`;
   if (cache.has(cacheKey)) return cache.get(cacheKey) ?? null;
 
-  const families = opts.display ? ["InterDisplay", "Inter"] : ["Inter"];
   let bytes: Buffer | null = null;
-  outer: for (const family of families) {
-    for (const dir of INTER_DIRS) {
-      for (const ext of ["otf", "ttf"]) {
+
+  // Drop-in licensed fonts take priority: they exist precisely because the
+  // owner wants exact-match fidelity for specific documents.
+  const dropinFiles = DROPIN_FILES[name];
+  if (dropinFiles) {
+    outer: for (const dir of DROPIN_DIRS) {
+      for (const file of dropinFiles) {
         try {
-          bytes = await readFile(`${dir}/${family}-${stem}.${ext}`);
+          bytes = await readFile(path.join(dir, file));
           break outer;
         } catch {
           // try the next candidate
@@ -60,6 +81,25 @@ export async function getCustomFontBytes(
       }
     }
   }
+
+  // Inter family (installed via the fonts-inter system package).
+  const stem = INTER_STEMS[name];
+  if (!bytes && stem) {
+    const families = opts.display ? ["InterDisplay", "Inter"] : ["Inter"];
+    outer: for (const family of families) {
+      for (const dir of INTER_DIRS) {
+        for (const ext of ["otf", "ttf"]) {
+          try {
+            bytes = await readFile(`${dir}/${family}-${stem}.${ext}`);
+            break outer;
+          } catch {
+            // try the next candidate
+          }
+        }
+      }
+    }
+  }
+
   if (bytes === null) {
     console.warn(`Custom font "${cacheKey}" not found — falling back to a standard font`);
   }

@@ -45,6 +45,10 @@ export const textElementSchema = z.object({
       "inter-bold",
       "inter-extrabold",
       "inter-black",
+      // Drop-in licensed fonts (server-side files, not in git). Fall back to
+      // Inter/Helvetica when the files aren't installed on the host.
+      "ubermove",
+      "ubermove-bold",
     ])
     .default("helvetica"),
 });

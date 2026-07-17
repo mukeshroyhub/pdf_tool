@@ -19,6 +19,11 @@ services:
       PORT: "4000"
     expose:
       - "4000"
+    volumes:
+      # Drop-in licensed fonts (e.g. Uber Move) live on the host, outside git.
+      # Put .otf/.ttf files in ./fonts-custom on the box; the editor uses them
+      # for exact-match text replacement. Empty dir = graceful fallback.
+      - ./fonts-custom:/app/apps/api/fonts:ro
 
   web:
     build:
