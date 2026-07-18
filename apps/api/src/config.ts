@@ -26,6 +26,10 @@ const envSchema = z.object({
   // the x-admin-key header. When empty, the admin endpoint is disabled (404).
   ADMIN_KEY: z.string().optional().default(""),
 
+  // The owner's account email. When a user signs in with this email, their
+  // UserDTO gets isAdmin=true, which shows the Admin badge + stats link.
+  ADMIN_EMAIL: z.string().optional().default(""),
+
   // Object storage: "local" (disk) in dev, "s3" (S3-compatible, e.g. R2) in prod.
   STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
   S3_BUCKET: z.string().optional().default(""),

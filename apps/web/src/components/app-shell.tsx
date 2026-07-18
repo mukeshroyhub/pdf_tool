@@ -3,11 +3,14 @@
 import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, FileCog, LayoutDashboard, Loader2, LogOut, Settings } from "lucide-react";
+import { BarChart3, BookOpen, FileCog, LayoutDashboard, Loader2, LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
+
+/** Site owner shown in the header — change this to rename the admin credit. */
+const OWNER_NAME = "Mukesh Roy";
 
 /** Authenticated layout shell: header nav + content. Redirects guests to login. */
 export function AppShell({ children }: { children: ReactNode }) {
@@ -31,6 +34,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/settings", label: "Settings", icon: Settings },
     { href: "/help", label: "Help", icon: BookOpen },
+    // Only the owner (email === ADMIN_EMAIL) sees the usage dashboard link.
+    ...(user.isAdmin ? [{ href: "/admin", label: "Usage", icon: BarChart3 }] : []),
   ];
 
   return (
@@ -63,8 +68,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            {/* Guest accounts get a machine-generated email — show a clean badge
-                instead. Real emails are truncated so long ones can't break the bar. */}
+            {/* Ownership credit — plain text, shown to every visitor. */}
+            <span className="hidden text-sm text-muted-foreground lg:inline">
+              Owned by {OWNER_NAME}
+            </span>
+            {/* Session identity, unchanged: guests get a chip, users their email. */}
             {user.email.endsWith("@guest.pdfforge.local") ? (
               <span className="hidden rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground md:inline">
                 Guest

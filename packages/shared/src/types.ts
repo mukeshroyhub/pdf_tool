@@ -10,6 +10,8 @@ export interface UserDTO {
   storageUsed: number;
   storageLimit: number;
   activityLogging: boolean;
+  /** True when this account's email matches the server's ADMIN_EMAIL. */
+  isAdmin: boolean;
   createdAt: string;
 }
 

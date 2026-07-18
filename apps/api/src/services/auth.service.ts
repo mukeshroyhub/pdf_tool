@@ -68,6 +68,9 @@ export function toUserDTO(user: User): UserDTO {
     storageUsed: Number(user.storageUsed),
     storageLimit: Number(user.storageLimit),
     activityLogging: user.activityLogging,
+    isAdmin:
+      config.ADMIN_EMAIL.length > 0 &&
+      user.email.toLowerCase() === config.ADMIN_EMAIL.toLowerCase(),
     createdAt: user.createdAt.toISOString(),
   };
 }
