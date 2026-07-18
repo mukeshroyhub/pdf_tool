@@ -80,7 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
             ) : (
               <span className="hidden max-w-[200px] truncate text-sm text-muted-foreground md:inline">
-                {user.email}
+                {user.name}
               </span>
             )}
             <ThemeToggle />
