@@ -68,8 +68,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            {/* Ownership credit — plain text, shown to every visitor. */}
-            <span className="hidden text-sm text-muted-foreground lg:inline">
+            {/* Ownership credit — plain text, shown to every visitor on all
+                screen sizes (small text so it doesn't crowd on mobile). */}
+            <span className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
               Owned by {OWNER_NAME}
             </span>
             {/* Session identity, unchanged: guests get a chip, users their email. */}
