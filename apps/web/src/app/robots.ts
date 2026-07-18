@@ -11,7 +11,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: ["/", "/help"],
         // Private app surfaces: nothing useful for a crawler, and file URLs
         // are meaningless outside the owner's browser anyway.
-        disallow: ["/dashboard", "/files/", "/settings", "/api/", "/auth/"],
+        disallow: ["/dashboard", "/files/", "/settings", "/admin", "/api/", "/auth/"],
       },
     ],
     sitemap: `${BASE_URL}/sitemap.xml`,

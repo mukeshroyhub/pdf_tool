@@ -89,6 +89,19 @@ model File {
   @@map("files")
 }
 
+// Privacy-preserving usage counters. Aggregate only: a count per (date, metric).
+// No user id, no IP, no file names — nothing that identifies a person or a
+// document. Just "how many of X happened on day Y". Powers the /admin stats.
+model DailyStat {
+  id     String @id @default(cuid())
+  date   String // YYYY-MM-DD (UTC)
+  metric String // "guest" | "signup" | "login" | "pdf_op"
+  count  Int    @default(0)
+
+  @@unique([date, metric])
+  @@map("daily_stats")
+}
+
 // Activity timeline entries. `action` examples: "UPLOAD", "MERGE", "COMPRESS".
 model Activity {
   id        String   @id @default(cuid())

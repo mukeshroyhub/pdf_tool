@@ -13,6 +13,8 @@ import { activityRouter } from "./routes/activity.routes";
 import { pdfRouter } from "./routes/pdf.routes";
 import { batchRouter, compressRouter, convertRouter } from "./routes/convert.routes";
 import { formRouter } from "./routes/ocr-form.routes";
+import { adminRouter } from "./routes/admin.routes";
+import { bump, type Metric } from "./services/analytics.service";
 
 export function createApp(): express.Express {
   const app = express();
@@ -61,6 +63,19 @@ export function createApp(): express.Express {
 
   app.use("/api", apiLimiter);
 
+  // Privacy-preserving usage counting: on a successful response, bump one
+  // aggregate counter based on the endpoint. No identity, no payload — just a
+  // tally of "an operation of this kind happened". Runs after the response so
+  // it never slows a request.
+  app.use((req, res, next) => {
+    res.on("finish", () => {
+      if (res.statusCode >= 400) return;
+      const metric = metricFor(req.method, req.path);
+      if (metric) bump(metric);
+    });
+    next();
+  });
+
   app.use("/api/auth", authRouter);
   app.use("/api/users", userRouter);
   app.use("/api/files", fileRouter);
@@ -70,9 +85,25 @@ export function createApp(): express.Express {
   app.use("/api/compress", compressRouter);
   app.use("/api/batch", batchRouter);
   app.use("/api/forms", formRouter);
+  app.use("/api/admin", adminRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
 
   return app;
+}
+
+/**
+ * Maps a request to an aggregate metric, or null to ignore it. Only meaningful
+ * user actions are counted; staging uploads, downloads, reads and polling are
+ * ignored so the numbers reflect real usage, not internal round-trips.
+ */
+function metricFor(method: string, path: string): Metric | null {
+  if (method !== "POST") return null;
+  if (path === "/api/auth/guest") return "guest";
+  if (path === "/api/auth/register") return "signup";
+  if (path === "/api/auth/login") return "login";
+  // A PDF tool actually ran (merge/split/edit/compress/convert/protect/form/…).
+  if (/^\/api\/(pdf|convert|compress|batch|forms)\//.test(path)) return "pdf_op";
+  return null;
 }

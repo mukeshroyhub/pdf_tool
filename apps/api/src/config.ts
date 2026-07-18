@@ -22,6 +22,10 @@ const envSchema = z.object({
   // which many hosts (incl. Render free) block on ports 25/465/587.
   BREVO_API_KEY: z.string().optional().default(""),
 
+  // Admin analytics key. When set, GET /api/admin/stats requires this key in
+  // the x-admin-key header. When empty, the admin endpoint is disabled (404).
+  ADMIN_KEY: z.string().optional().default(""),
+
   // Object storage: "local" (disk) in dev, "s3" (S3-compatible, e.g. R2) in prod.
   STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
   S3_BUCKET: z.string().optional().default(""),
