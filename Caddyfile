@@ -1,17 +1,56 @@
-# Replace pdftool.example.com with YOUR domain (e.g. a free DuckDNS subdomain
-# like pdftool-mukesh.duckdns.org). Caddy fetches and renews the HTTPS
-# certificate automatically — no manual certbot needed.
+# Replace pdftool4u.duckdns.org with YOUR domain (e.g. a free DuckDNS
+# subdomain). Caddy fetches and renews the HTTPS certificate automatically —
+# no manual certbot needed.
 
 pdftool4u.duckdns.org {
-	encode gzip
+	encode gzip zstd
+
+	# --- Edge header hygiene -------------------------------------------------
+	# Strip anything that advertises the stack. Next.js and Express are already
+	# configured not to emit these, but the reverse proxy is the last line of
+	# defence if an upstream ever changes.
+	header {
+		-Server
+		-X-Powered-By
+		# HSTS with preload. Only safe because every subdomain is served here
+		# over HTTPS; drop `preload` if that ever stops being true.
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+	}
+
+	# Auth and authenticated app pages: no caching anywhere, no indexing.
+	@private path /login* /register* /forgot-password* /reset-password* /verify-email* /auth/* /dashboard* /settings* /admin* /files/*
+	header @private {
+		Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+		Pragma "no-cache"
+		Expires "0"
+		X-Robots-Tag "noindex, nofollow"
+	}
+
+	# Immutable build assets can be cached hard — the filenames are hashed.
+	@static path /_next/static/*
+	header @static Cache-Control "public, max-age=31536000, immutable"
 
 	# API calls go straight to the Express service.
 	handle /api/* {
+		# API responses carry user data — never cacheable by a proxy or browser.
+		header {
+			Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+			Pragma "no-cache"
+			X-Robots-Tag "noindex, nofollow"
+		}
 		reverse_proxy api:4000
 	}
 
 	# Everything else is the Next.js web app.
 	handle {
 		reverse_proxy web:3000
+	}
+
+	# Request log — useful for incident review; rotates automatically.
+	log {
+		output file /var/log/caddy/pdftool4u.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
 	}
 }

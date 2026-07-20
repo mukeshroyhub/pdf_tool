@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
             in 1 hour.
           </p>
           <Button asChild variant="outline" className="mt-2">
-            <Link href="/login">Back to sign in</Link>
+            <Link href="/login" prefetch={false}>Back to sign in</Link>
           </Button>
         </CardContent>
       </Card>
@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Reset your password</CardTitle>
+        <CardTitle as="h1" className="text-xl">Reset your password</CardTitle>
         <CardDescription>
           Enter your email and we&apos;ll send you a link to reset your password.
         </CardDescription>
@@ -65,13 +65,18 @@ export default function ForgotPasswordPage() {
             <AlertDescription>{serverError}</AlertDescription>
           </Alert>
         ) : null}
-        <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        {/* method="post" is deliberate: a form with no method defaults to GET, so an
+            Enter keypress before React hydrates would put the field values into
+            the URL, history and proxy logs. */}
+        <form onSubmit={onSubmit} method="post" action="/forgot-password" className="space-y-4" noValidate>
           <FormField label="Email" htmlFor="email" error={errors.email?.message}>
             <Input
               id="email"
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
+              required
+              aria-invalid={errors.email ? true : undefined}
               {...field("email")}
             />
           </FormField>
@@ -82,7 +87,7 @@ export default function ForgotPasswordPage() {
         </form>
         <p className="text-center text-sm text-muted-foreground">
           Remembered it?{" "}
-          <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+          <Link href="/login" prefetch={false} className="font-medium text-primary underline-offset-4 hover:underline">
             Sign in
           </Link>
         </p>

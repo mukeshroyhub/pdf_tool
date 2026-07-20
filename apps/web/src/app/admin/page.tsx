@@ -79,7 +79,7 @@ export default function AdminPage() {
   );
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
+    <main id="main-content" className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-6 flex items-center gap-3">
         <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <BarChart3 className="h-5 w-5" />
@@ -94,6 +94,8 @@ export default function AdminPage() {
 
       {!adminKey ? (
         <form
+          method="post"
+          action="/admin"
           className="mx-auto max-w-sm space-y-3 rounded-xl border bg-card p-6"
           onSubmit={(e) => {
             e.preventDefault();

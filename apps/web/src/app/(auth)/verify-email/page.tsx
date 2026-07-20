@@ -41,15 +41,20 @@ function VerifyEmailInner() {
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+        <h1 className="sr-only">Email verification</h1>
         {status === "verifying" ? (
           <>
-            <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-            <p className="font-medium">Verifying your email…</p>
+            <Loader2 aria-hidden="true" className="h-10 w-10 animate-spin text-muted-foreground" />
+            <p role="status" aria-live="polite" className="font-medium">
+              Verifying your email…
+            </p>
           </>
         ) : status === "success" ? (
           <>
-            <BadgeCheck className="h-10 w-10 text-green-600" />
-            <p className="font-medium">Email verified</p>
+            <BadgeCheck aria-hidden="true" className="h-10 w-10 text-green-600" />
+            <p role="status" aria-live="polite" className="font-medium">
+              Email verified
+            </p>
             <p className="text-sm text-muted-foreground">Your email address is now confirmed.</p>
             <Button asChild className="mt-2">
               <Link href={user ? "/dashboard" : "/login"}>
@@ -59,11 +64,13 @@ function VerifyEmailInner() {
           </>
         ) : (
           <>
-            <CircleX className="h-10 w-10 text-destructive" />
-            <p className="font-medium">Verification failed</p>
+            <CircleX aria-hidden="true" className="h-10 w-10 text-destructive" />
+            <p role="alert" className="font-medium">
+              Verification failed
+            </p>
             <p className="text-sm text-muted-foreground">{message}</p>
             <Button asChild variant="outline" className="mt-2">
-              <Link href="/login">Back to sign in</Link>
+              <Link href="/login" prefetch={false}>Back to sign in</Link>
             </Button>
           </>
         )}

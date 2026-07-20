@@ -297,6 +297,7 @@ function RenameDialog({ file, onClose }: { file: FileDTO | null; onClose: () => 
           <DialogTitle>Rename file</DialogTitle>
         </DialogHeader>
         <form
+          method="post"
           onSubmit={(e) => {
             e.preventDefault();
             void submit();

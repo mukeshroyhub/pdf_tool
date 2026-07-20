@@ -113,7 +113,7 @@ function ProfileCard({ user }: { user: UserDTO }) {
         <CardDescription>Update your account details</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        <form onSubmit={onSubmit} method="post" action="/settings" className="space-y-4" noValidate>
           <FormField label="Name" htmlFor="profile-name" error={errors.name?.message}>
             <Input id="profile-name" {...field("name")} />
           </FormField>
@@ -156,7 +156,7 @@ function PasswordCard() {
         <CardDescription>Change your account password</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        <form onSubmit={onSubmit} method="post" action="/settings" className="space-y-4" noValidate>
           <FormField
             label="Current password"
             htmlFor="current-password"

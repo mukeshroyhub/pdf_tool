@@ -16,8 +16,12 @@ export default function HomePage() {
   }, [user, loading, router]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    <main id="main-content" className="flex min-h-screen items-center justify-center">
+      <h1 className="sr-only">PDF Tool — online PDF editor and converter</h1>
+      <div role="status" aria-live="polite">
+        <Loader2 aria-hidden="true" className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="sr-only">Loading…</span>
+      </div>
     </main>
   );
 }

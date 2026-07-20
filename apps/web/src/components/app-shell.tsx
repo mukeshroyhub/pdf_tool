@@ -24,8 +24,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (loading || !user) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <main id="main-content" className="flex min-h-screen items-center justify-center">
+        <div role="status" aria-live="polite">
+          <Loader2 aria-hidden="true" className="h-6 w-6 animate-spin text-muted-foreground" />
+          <span className="sr-only">Loading your session…</span>
+        </div>
       </main>
     );
   }
@@ -43,17 +46,19 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-40 border-b bg-background">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="flex items-center gap-2">
+            <Link href="/dashboard" aria-label="PDF Tool — go to dashboard" className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <FileCog className="h-4 w-4" />
+                <FileCog aria-hidden="true" className="h-4 w-4" />
               </span>
               <span className="font-bold tracking-tight">PDF Tool</span>
             </Link>
-            <nav className="flex items-center gap-1">
+            <nav aria-label="Main" className="flex items-center gap-1">
               {nav.map(({ href, label, icon: Icon }) => (
                 <Link
                   key={href}
                   href={href}
+                  aria-label={label}
+                  aria-current={pathname === href ? "page" : undefined}
                   className={cn(
                     "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                     pathname === href
@@ -61,7 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon aria-hidden="true" className="h-4 w-4" />
                   <span className="hidden sm:inline">{label}</span>
                 </Link>
               ))}
@@ -87,18 +92,19 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Button
               variant="outline"
               size="sm"
+              aria-label="Sign out"
               onClick={async () => {
                 await logout();
                 router.replace("/login");
               }}
             >
-              <LogOut />
+              <LogOut aria-hidden="true" />
               <span className="hidden sm:inline">Sign out</span>
             </Button>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+      <main id="main-content" className="mx-auto max-w-6xl px-4 py-8">{children}</main>
     </div>
   );
 }

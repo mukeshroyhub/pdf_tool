@@ -62,7 +62,7 @@ function ResetPasswordForm() {
             This link is missing its token. Request a new one below.
           </p>
           <Button asChild variant="outline">
-            <Link href="/forgot-password">Request new link</Link>
+            <Link href="/forgot-password" prefetch={false}>Request new link</Link>
           </Button>
         </CardContent>
       </Card>
@@ -72,7 +72,7 @@ function ResetPasswordForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Choose a new password</CardTitle>
+        <CardTitle as="h1" className="text-xl">Choose a new password</CardTitle>
         <CardDescription>Your new password must be at least 8 characters.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -81,9 +81,20 @@ function ResetPasswordForm() {
             <AlertDescription>{serverError}</AlertDescription>
           </Alert>
         ) : null}
-        <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        {/* method="post" is deliberate: a form with no method defaults to GET, so an
+            Enter keypress before React hydrates would put the field values into
+            the URL, history and proxy logs. */}
+        <form onSubmit={onSubmit} method="post" action="/reset-password" className="space-y-4" noValidate>
           <FormField label="New password" htmlFor="password" error={errors.password?.message}>
-            <Input id="password" type="password" autoComplete="new-password" {...field("password")} />
+            <Input
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              aria-invalid={errors.password ? true : undefined}
+              {...field("password")}
+            />
           </FormField>
           <FormField
             label="Confirm password"
@@ -94,6 +105,9 @@ function ResetPasswordForm() {
               id="confirmPassword"
               type="password"
               autoComplete="new-password"
+              required
+              minLength={8}
+              aria-invalid={errors.confirmPassword ? true : undefined}
               {...field("confirmPassword")}
             />
           </FormField>

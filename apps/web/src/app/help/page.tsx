@@ -206,7 +206,7 @@ export default function HelpPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl space-y-10 px-4 py-10">
+      <main id="main-content" className="mx-auto max-w-4xl space-y-10 px-4 py-10">
         <div className="space-y-3 text-center">
           <h1 className="text-3xl font-bold tracking-tight">How to use PDF Tool</h1>
           <p className="mx-auto max-w-2xl text-muted-foreground">

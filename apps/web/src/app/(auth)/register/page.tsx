@@ -40,7 +40,7 @@ export default function RegisterPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Create your account</CardTitle>
+        <CardTitle as="h1" className="text-xl">Create your account</CardTitle>
         <CardDescription>Free 1 GB of storage. No credit card required.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -49,9 +49,19 @@ export default function RegisterPage() {
             <AlertDescription>{serverError}</AlertDescription>
           </Alert>
         ) : null}
-        <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        {/* method="post" is deliberate: a form with no method defaults to GET, so an
+            Enter keypress before React hydrates would put the field values into
+            the URL, history and proxy logs. */}
+        <form onSubmit={onSubmit} method="post" action="/register" className="space-y-4" noValidate>
           <FormField label="Name" htmlFor="name" error={errors.name?.message}>
-            <Input id="name" placeholder="Jane Doe" autoComplete="name" {...field("name")} />
+            <Input
+              id="name"
+              placeholder="Jane Doe"
+              autoComplete="name"
+              required
+              aria-invalid={errors.name ? true : undefined}
+              {...field("name")}
+            />
           </FormField>
           <FormField label="Email" htmlFor="email" error={errors.email?.message}>
             <Input
@@ -59,6 +69,8 @@ export default function RegisterPage() {
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
+              required
+              aria-invalid={errors.email ? true : undefined}
               {...field("email")}
             />
           </FormField>
@@ -68,6 +80,9 @@ export default function RegisterPage() {
               type="password"
               placeholder="At least 8 characters"
               autoComplete="new-password"
+              required
+              minLength={8}
+              aria-invalid={errors.password ? true : undefined}
               {...field("password")}
             />
           </FormField>
@@ -87,7 +102,7 @@ export default function RegisterPage() {
         <GoogleButton label="Sign up with Google" />
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+          <Link href="/login" prefetch={false} className="font-medium text-primary underline-offset-4 hover:underline">
             Sign in
           </Link>
         </p>

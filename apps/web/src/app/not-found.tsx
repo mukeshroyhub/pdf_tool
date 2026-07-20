@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 /** Branded 404 page shown for any unknown route. */
 export default function NotFound() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-muted/40 px-4 text-center">
+    <main id="main-content" className="flex min-h-screen flex-col items-center justify-center gap-6 bg-muted/40 px-4 text-center">
       <Link href="/dashboard" className="flex items-center gap-2">
         <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <FileCog className="h-5 w-5" />

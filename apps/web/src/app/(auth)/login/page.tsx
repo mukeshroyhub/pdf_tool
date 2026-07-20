@@ -53,7 +53,7 @@ export default function LoginPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Welcome back</CardTitle>
+        <CardTitle as="h1" className="text-xl">Welcome back</CardTitle>
         <CardDescription>Sign in to your account to continue</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -62,13 +62,19 @@ export default function LoginPage() {
             <AlertDescription>{serverError}</AlertDescription>
           </Alert>
         ) : null}
-        <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        {/* method="post" is deliberate. The submit is handled in JS, but a form
+            with no method defaults to GET — so an Enter keypress before React
+            hydrates would navigate to /login?email=…&password=… and leak the
+            credentials into the URL, browser history, and proxy logs. */}
+        <form onSubmit={onSubmit} method="post" action="/login" className="space-y-4" noValidate>
           <FormField label="Email" htmlFor="email" error={errors.email?.message}>
             <Input
               id="email"
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
+              required
+              aria-invalid={errors.email ? true : undefined}
               {...field("email")}
             />
           </FormField>
@@ -79,6 +85,7 @@ export default function LoginPage() {
             hint={
               <Link
                 href="/forgot-password"
+                prefetch={false}
                 className="text-xs text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
               >
                 Forgot password?
@@ -90,6 +97,8 @@ export default function LoginPage() {
               type="password"
               placeholder="••••••••"
               autoComplete="current-password"
+              required
+              aria-invalid={errors.password ? true : undefined}
               {...field("password")}
             />
           </FormField>
@@ -119,7 +128,7 @@ export default function LoginPage() {
         </Button>
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="font-medium text-primary underline-offset-4 hover:underline">
+          <Link href="/register" prefetch={false} className="font-medium text-primary underline-offset-4 hover:underline">
             Sign up
           </Link>
         </p>

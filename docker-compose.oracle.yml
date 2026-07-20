@@ -53,6 +53,10 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      # The Caddyfile writes access logs to /var/log/caddy; the stock image has
+      # no such directory. This volume guarantees it exists AND persists logs
+      # across container recreation.
+      - caddy_logs:/var/log/caddy
     depends_on:
       - web
       - api
@@ -60,3 +64,4 @@ services:
 volumes:
   caddy_data:
   caddy_config:
+  caddy_logs:

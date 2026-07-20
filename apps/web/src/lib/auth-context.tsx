@@ -28,14 +28,32 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** Non-secret flag set by the API next to the httpOnly refresh cookie. */
+const SESSION_HINT_COOKIE = "pf_session";
+
+/** True when the browser is carrying a session hint, i.e. a refresh is worth trying. */
+function hasSessionHint(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split("; ").some((c) => c.startsWith(`${SESSION_HINT_COOKIE}=`));
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserDTO | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Restore the session from the httpOnly refresh cookie on first load.
+  //
+  // The refresh call is skipped entirely when the readable `pf_session` hint
+  // cookie is absent. Previously every anonymous visitor hitting /login fired a
+  // POST /api/auth/refresh that could only ever return 401 — a guaranteed-to-
+  // fail request sitting on the critical path of the most-loaded page.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (!hasSessionHint()) {
+        setLoading(false);
+        return;
+      }
       const ok = await tryRefresh();
       if (ok) {
         try {

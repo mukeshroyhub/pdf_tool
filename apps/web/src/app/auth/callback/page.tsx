@@ -48,9 +48,10 @@ export default function OAuthCallbackPage() {
   }, [router, setUser]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" />
+    <main id="main-content" className="flex min-h-screen items-center justify-center">
+      <h1 className="sr-only">Completing sign-in</h1>
+      <div role="status" aria-live="polite" className="flex items-center gap-2 text-muted-foreground">
+        <Loader2 aria-hidden="true" className="h-5 w-5 animate-spin" />
         Completing sign-in…
       </div>
     </main>

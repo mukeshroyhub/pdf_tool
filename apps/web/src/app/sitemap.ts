@@ -11,7 +11,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: `${BASE_URL}/`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE_URL}/help`, lastModified: now, changeFrequency: "monthly", priority: 1 },
-    { url: `${BASE_URL}/login`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${BASE_URL}/register`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    // /login and /register are intentionally absent: they now ship
+    // `X-Robots-Tag: noindex`, and listing a noindexed URL in the sitemap is a
+    // contradictory signal that Search Console flags as an error.
   ];
 }

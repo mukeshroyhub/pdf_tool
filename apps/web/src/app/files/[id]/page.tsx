@@ -246,6 +246,7 @@ function FileContent({ id }: { id: string }) {
         </p>
       ) : needsPassword ? (
         <form
+          method="post"
           className="mx-auto max-w-sm space-y-4 rounded-xl border bg-card p-8 text-center"
           onSubmit={(e) => {
             e.preventDefault();
