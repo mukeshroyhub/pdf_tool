@@ -16,16 +16,33 @@ function today(): string {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
 }
 
-/** Increments a daily counter. Fire-and-forget: never blocks or breaks a request. */
+/**
+ * Increments a daily counter. Fire-and-forget: never blocks or breaks a request.
+ *
+ * Uses updateMany-then-create rather than upsert-on-compound-unique: production
+ * `prisma db push` runs without --accept-data-loss (data safety), which can skip
+ * adding the (date,metric) unique index to an existing table — and an upsert
+ * that relies on that index then fails silently. updateMany/create need no
+ * unique constraint, so counting works whether or not the index exists. A rare
+ * race could create two rows for the same (date,metric); summary() sums them, so
+ * totals stay correct. Errors are logged (not swallowed) so a persistent failure
+ * is visible in the API logs instead of producing silent zeroes.
+ */
 export function bump(metric: Metric): void {
   const date = today();
-  void prisma.dailyStat
-    .upsert({
-      where: { date_metric: { date, metric } },
-      create: { date, metric, count: 1 },
-      update: { count: { increment: 1 } },
-    })
-    .catch(() => undefined);
+  void (async () => {
+    try {
+      const res = await prisma.dailyStat.updateMany({
+        where: { date, metric },
+        data: { count: { increment: 1 } },
+      });
+      if (res.count === 0) {
+        await prisma.dailyStat.create({ data: { date, metric, count: 1 } });
+      }
+    } catch (err) {
+      console.error("[analytics] bump failed:", err instanceof Error ? err.message : err);
+    }
+  })();
 }
 
 export interface StatsSummary {
@@ -52,7 +69,9 @@ export async function summary(days = 30): Promise<StatsSummary> {
   const byDay = new Map<string, Record<string, number>>();
   for (const r of rows) {
     const day = byDay.get(r.date) ?? {};
-    day[r.metric] = r.count;
+    // Accumulate, not overwrite, so any duplicate (date,metric) rows (possible
+    // without the unique index) still sum to the correct per-day figure.
+    day[r.metric] = (day[r.metric] ?? 0) + r.count;
     byDay.set(r.date, day);
   }
   const todayStr = today();
